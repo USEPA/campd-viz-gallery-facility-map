@@ -1,0 +1,7 @@
+---
+applications:
+- name: Facility Map
+  disk_quota: 2G
+  memory: 1.5G
+  routes:
+  - route: facility-map.apps.internal
