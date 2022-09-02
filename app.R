@@ -49,11 +49,11 @@ library(EPAheaderwidget)
 
 load_dot_env(".env")
 
-# data scripts
-source("./data/API-calls.R")
-source("./data/static.R")
-source("./data/reactive.R")
-source("./data/functions.R")
+# src scripts
+source("./src/API-calls.R")
+source("./src/static.R")
+source("./src/reactive.R")
+source("./src/functions.R")
 
 # modules
 source("./modules/search.R")
