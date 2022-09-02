@@ -1,0 +1,24 @@
+---
+packages:
+  - packages:
+    - name: dotenv
+    - name: shiny
+    - name: shinyBS
+    - name: shinydashboard
+    - name: shinybusy
+    - name: shinyjs
+    - name: shinyWidgets
+    - name: sf
+    - name: leaflet
+    - name: leaflet.extras
+    - name: data.table
+    - name: httr
+    - name: jsonlite
+    - name: tidyverse
+    - name: lubridate
+    - name: data.table
+    - name: zoo
+    - name: reactR
+    - name: htmlwidgets
+    - name: htmltools
+    
