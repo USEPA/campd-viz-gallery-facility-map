@@ -1,0 +1,198 @@
+
+
+/* RShiny Hack to disable container fluid */
+
+.container-fluid {
+    padding-right: 0;
+    padding-left: 0;
+    margin-right: 0;
+    margin-left: 0;
+}
+
+/* Custom CSS **************************************************/
+
+/* Banner */
+.banner {
+  position: relative; 
+  width:100%; 
+  height: auto;
+  background-color: #005ea2;
+}
+
+.banner .banner-conents {
+  font-size: 18px;
+  font-weight: bold;
+  padding: 15px;
+  padding-top: 13px;
+  color: white; /* text color */
+  text-shadow: -1px 0 #3d4551, 0 1px #3d4551, 1px 0 #3d4551, 0 -1px #3d4551;
+}
+
+/* Shiny busy */
+.shinybusy-overlay {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* General */
+#facility-map-content {
+  padding: 10px;
+}
+
+ul.intro-list li.indent {
+  margin-left:25px;
+}
+
+.btn-group div {
+  float: left; /* Float the buttons side by side */
+  padding-right: 5px;
+}
+
+/* Clear floats (clearfix hack) */
+.btn-group:after {
+  clear: both;
+  display: table;
+}
+
+/* Map */
+div#id-map {
+  !important;
+}
+
+.maparea {
+  margin-bottom:2.35rem;
+}
+
+#facility-map-panel {
+  overflow-y:scroll; 
+  max-height: 480px; 
+  width: 360px;
+  right: 10px;
+  background-color: white; 
+  z-index: 10; 
+  margin: 10px;
+  padding: 10px;
+}
+
+div.leaflet-container:focus {
+  outline: 5px solid #28a0cb;
+}
+
+.leaflet-control-container .info.legend{
+  background-color: rgba(255,255,255,.90);
+  color: black;
+}
+
+.marker-cluster div {
+  padding-top: 5px;
+  background-color: rgba(204,51,255,0.90);
+  color: black;
+}
+
+.marker-cluster span {
+  font-size: 0;
+}
+
+.leaflet-marker-icon img:hover {
+  border-width: 5px solid #3d4551;
+}
+
+div#epaFoot .position-fixed {
+  position: fixed;
+  bottom: 0;
+  z-index:9999;
+}
+
+#ss-reload-link:focus, .leaflet-popup a.leaflet-popup-close-button:focus {
+  outline: 2px solid #28a0cb;
+}
+
+div.leaflet-touch-drag:focus {
+  color:#1a4480;
+  outline: 2px solid #28a0cb;
+}
+
+/* Filters/Searches */
+
+#filtersearch-container .column-decorator {
+  background-color: #f0f0f0;
+  border: 1px solid #3d4551;
+  border-radius: 5px;
+  margin: 5px;
+  padding-right: 15px;
+  padding-left: 15px;
+  padding-top: 10px;
+  padding-bottom: 0px;
+}
+
+#filtersearch-container .column-decorator .form-group {
+  margin-bottom: 0px;
+}
+
+.select-clear {
+  margin-top: 0px;
+  margin-bottom: 10px;
+}
+
+/* Butons */
+
+.clear-preview-btns {
+  display: flex;
+  justify-content: space-between;
+}
+
+.btn {
+  background-color: #1A4480;
+  color: white; 
+  font-weight: bold;
+  border: 1px solid #3d4551;
+}
+
+.btn:hover {
+  color: white; /* text color */
+  background-color: #162e51;
+}
+
+.btn:focus {
+  color: white; /* text color */
+  background-color: #162e51;
+}
+
+#filter-tooltip, #search-tooltip {
+  border-radius: 50%;
+  vertical-align: top;
+  font-size: 0;
+}
+
+#filter-tooltip i, #search-tooltip i {
+  font-size: 12px;
+  padding: 2px;
+}
+
+.box-header .box-tools .btn-box-tool {
+  font-size: 0;
+}
+
+.box-header .box-tools .btn-box-tool i {
+  font-size: 12px;
+}
+
+/* Display Table */
+
+.display-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.display-table-cell, .display-table-header {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+.display-table-row:nth-child(even) {
+  background-color: #e7f6f8;
+}
+
+.resource-table {
+  width: 70%;
+}
