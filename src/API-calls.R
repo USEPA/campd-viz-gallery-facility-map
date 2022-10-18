@@ -30,7 +30,9 @@ get_facility_data <- function(years){
   
   if (length(res$status_code) != 0){
     if (res$status_code != 200){
-      stop(paste("API status code:",res$status_code,annualEmissionsUrl,"..",res$message))
+      return(stop(paste("API status code:",res$status_code,"..",
+                        " /streaming-services/facilities/attributes",
+                        res$message)))
     }
   }
   
@@ -55,7 +57,9 @@ get_allow_comp_data <- function(complianceYears, programs=NULL,
   
   if (length(res$status_code) != 0){
     if (res$status_code != 200){
-      stop(paste("API status code:",res$status_code,annualEmissionsUrl,"..",res$message))
+      return(stop(paste("API status code:",res$status_code,"..",
+                        " /streaming-services/allowance-compliance",
+                        res$message)))
     }
   }
   
@@ -65,15 +69,20 @@ get_allow_comp_data <- function(complianceYears, programs=NULL,
 }
 
 # API call to get allowance holdings info for a facility
-get_account_info_data <- function(facilities){
+get_account_info_data <- function(facilities=NULL,states=NULL){
   
-  query <- list(facilityId = (paste0(facilities, collapse = '|')))
+  baseQuery <- list()
   
-  res = GET(accountInfoUrl, query = query)
+  if (!is.null(facilities)){baseQuery <- append(baseQuery, list(facilityId = (paste0(facilities, collapse = '|'))))}
+  if (!is.null(states)){baseQuery <- append(baseQuery, list(stateCode = (paste0(states, collapse = '|'))))}
+  
+  res = GET(accountInfoUrl, query = baseQuery)
   
   if (length(res$status_code) != 0){
     if (res$status_code != 200){
-      stop(paste("API status code:",res$status_code,annualEmissionsUrl,"..",res$message))
+      return(stop(paste("API status code:",res$status_code,"..",
+                        " /streaming-services/accounts/attributes",
+                        res$message)))
     }
   }
   
