@@ -1,39 +1,5 @@
 # GitHub raw base 
-dataGitRawBase <- "https://raw.githubusercontent.com/USEPA/campd-viz-gallery-data-files/main"
-
-### Program year data ###
-# Get all programs and storing appropriate emission and compliance years
-res = GET(programMdmUrl)
-allPrograms <- fromJSON(rawToChar(res$content))
-allPrograms$programDescription <- paste0(
-  allPrograms$programDescription, " (",
-  allPrograms$programCode, ")")
-
-# Get all current programs
-currentPrograms <- allPrograms[allPrograms$retiredIndicator==FALSE,]
-
-# Get all allowance programs 
-compliancePrograms <- read.csv(paste0(dataGitRawBase,"/data/allowanceProgramTable.csv"))
-allCompliancePrograms <- compliancePrograms
-
-for (i in 1:nrow(allCompliancePrograms)){
-  if (!is.na(allCompliancePrograms$complianceYears[i])){
-    allCompliancePrograms$complianceYears[i] <- list(c(as.integer(unlist(strsplit(compliancePrograms$complianceYears[i], ",")))))
-  }
-  if (!is.na(allCompliancePrograms$emissionYears[i])){
-    allCompliancePrograms$emissionYears[i] <- list(c(as.integer(unlist(strsplit(compliancePrograms$emissionYears[i], ",")))))
-  }
-}
-
-currentCompliancePrograms <- allCompliancePrograms[allCompliancePrograms$retiredIndicator == FALSE,]
-
-latestComplianceYear <- min(na.omit(unlist(lapply(currentCompliancePrograms$programCode, function(program){
-  max(unlist(currentCompliancePrograms$complianceYears[currentCompliancePrograms$programCode == program]))
-}))))
-
-latestEmissionsYear <- min(na.omit(unlist(lapply(currentCompliancePrograms$programCode, function(program){
-  max(unlist(currentCompliancePrograms$emissionYears[currentCompliancePrograms$programCode == program]))
-}))))
+dataGitRawBase <- "https://raw.githubusercontent.com/USEPA/campd-viz-gallery-data-files/main/data/facility-map/"
 
 # table to convert column name to appropriate lables for UI
 facilityMapLabelConversion <- data.frame(columnName=c("programCode", 
