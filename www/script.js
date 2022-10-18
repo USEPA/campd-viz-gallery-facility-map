@@ -39,19 +39,22 @@ $(function() {
   )
   
   $(document).on("shiny:busy", function(event) {
+    
     const keyboardfocusableElements = document.querySelectorAll(
       'a, button, input, select'
     );
-    if ($('#id-map').length) {
+    if ($('#map').length) {
       
-      const map = document.getElementById('id-map');
+      const map = document.getElementById('map');
       map.setAttribute('tabindex', -1);
-      const mapElements = document.getElementById('id-map').getElementsByClassName('leaflet-marker-pane')[0];
-      const mapfocusableElements = mapElements.querySelectorAll(
-        'div, img'
-      );
-      for (let i=0; i < mapfocusableElements.length; i++){
-        mapfocusableElements[i].setAttribute('tabindex', -1);
+      const mapElements = document.getElementById('map').getElementsByClassName('leaflet-marker-pane')[0];
+      if (typeof mapElements !== 'undefined') {
+        const mapfocusableElements = mapElements.querySelectorAll(
+          'div, img'
+        );
+        for (let i=0; i < mapfocusableElements.length; i++){
+          mapfocusableElements[i].setAttribute('tabindex', -1);
+        }
       }
     }
     
@@ -68,20 +71,22 @@ $(function() {
     }
   })
   
-  $(document).on("shiny:idle", function(event) {
+  function enableAllElements() {
     const keyboardfocusableElements = document.querySelectorAll(
       'a, button, input, select'
     );
     
-    if ($('#id-map').length) {
-      const map = document.getElementById('id-map');
+    if ($('#map').length) {
+      const map = document.getElementById('map');
       map.setAttribute('tabindex', 0);
-      const mapElements = document.getElementById('id-map').getElementsByClassName('leaflet-marker-pane')[0];
-      const mapfocusableElements = mapElements.querySelectorAll(
-        'div, img'
-      );
-      for (let i=0; i < mapfocusableElements.length; i++){
-        mapfocusableElements[i].setAttribute('tabindex', 0);
+      const mapElements = document.getElementById('map').getElementsByClassName('leaflet-marker-pane')[0];
+      if (typeof mapElements !== 'undefined') {
+        const mapfocusableElements = mapElements.querySelectorAll(
+          'div, img'
+        );
+        for (let i=0; i < mapfocusableElements.length; i++){
+          mapfocusableElements[i].setAttribute('tabindex', 0);
+        }
       }
     }
     
@@ -94,7 +99,70 @@ $(function() {
         keyboardfocusableElements[i].disabled = false;
       }
     }
+  }
+  
+  $(document).on("shiny:idle", function(event) {
+    
+    const modal = document.getElementById('shiny-modal');
+    
+    if (modal !== null) {
+      
+      modal.removeAttribute('tabindex');
+      const modalElements = modal.querySelectorAll(
+        'a, button'
+      );
+      
+      for (let i=0; i < modalElements.length; i++){
+        if(modalElements[i].tagName == 'A') {
+          modalElements[i].removeAttribute('tabindex');
+        }
+        else {
+          modalElements[i].disabled = false;
+        }
+      }
+      return;
+    }
+    
+    enableAllElements();
+    
   })
+  
+  const minuselements = [...document.getElementsByClassName("fa-minus")];
+  const pluselements = [...document.getElementsByClassName("fa-plus")];
+  const questionelements = [...document.getElementsByClassName("fa-question")];
+  const downloadelements = [...document.getElementsByClassName("fa-download")];
+  const collapseElements = minuselements.concat(pluselements);
+  const subsetelements = collapseElements.concat(questionelements);
+  const elements = subsetelements.concat(downloadelements);
+  
+  for (let i=0; i < elements.length; i++){
+    elements[i].setAttribute("role", "img");
+  }
+  
+  const facilitySummaryBoxButton = document.getElementById("facility-summary-box").getElementsByClassName("btn-box-tool")[0];
+  facilitySummaryBoxButton.insertAdjacentText("beforeend", "button to expand and collapse the facility summary");
+  
+  const complianceSummaryBoxButton = document.getElementById("compliance-summary-box").getElementsByClassName("btn-box-tool")[0];
+  complianceSummaryBoxButton.insertAdjacentText("beforeend", "button to expand and collapse the compliance summary");
+  
+  const howToUseBoxButton = document.getElementById("how-to-use-map-box").getElementsByClassName("btn-box-tool")[0];
+  howToUseBoxButton.insertAdjacentText("beforeend", "button to expand and collapse the 'how to use the map' section");
+  const sourceDataBoxButton = document.getElementById("source-data-box").getElementsByClassName("btn-box-tool")[0];
+  sourceDataBoxButton.insertAdjacentText("beforeend", "button to expand and collapse the 'source data' section");
+  
+  
+  const formelements = [...document.getElementsByClassName("form-group")];
+  
+  for (let i=0; i < formelements.length; i++){
+    const id = formelements[i].getElementsByTagName("label")[0].textContent;
+    formelements[i].getElementsByTagName("select")[0].setAttribute("label", id);
+  }
+  
+  $(document).keyup(function(event) {
+      if ($(".leaflet-marker-icon").is(":focus") && (event.key == "Enter")) {
+          event.target.click();
+      }
+  });
   
 });
 
