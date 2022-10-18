@@ -21,4 +21,5 @@ packages:
     - name: reactR
     - name: htmlwidgets
     - name: htmltools
+    - name: curl
     
