@@ -1,4 +1,7 @@
 
+# debugging/verbose use in Rscript
+debugging <- function(...) cat(sprintf(...), sep='', file=stderr())
+
 # used to get rid of columns that would cause duplication of lat/long data
 # programFacilityData has a program column and facilities can be in multiple programs
 filter_facility_latlong_data <- function(facilityData){
@@ -6,7 +9,7 @@ filter_facility_latlong_data <- function(facilityData){
 }
 
 load_compliance_download_file <- function(){
-  #read.csv(file = paste0(dataGitRawBase,"/data/complianceDataTableForDownload.csv"))
+  #read.csv(file = paste0(dataGitRawBase,"/complianceDataTableForDownload.csv"))
   facilitiesForLatestYear <- unique(unitData[,c("facilityId","facilityName")])
   
   ### Collect compliance data for all years ###
@@ -17,7 +20,10 @@ load_compliance_download_file <- function(){
   
   complianceFacilityDataLatestYear <- allYearComplianceFacilityData[allYearComplianceFacilityData$year == latestComplianceYear,]
   
-  accountInfo <- get_account_info_data(facilities=facilitiesForLatestYear$facilityId)
+  # account info for current facilities
+  allAccountInfo <- get_account_info_data()
+  accountInfo <- allAccountInfo[allAccountInfo$facilityId %in% facilitiesForLatestYear$facilityId,]
+  
   accountInfoFac <- unique(accountInfo[accountInfo$accountNumber %like% 'FACLTY',c("accountNumber","facilityId")])
   
   accountInfoFac <- merge(facilitiesForLatestYear,accountInfoFac,by=c("facilityId"),all.x = TRUE)
@@ -59,6 +65,6 @@ load_compliance_download_file <- function(){
   complianceDataTableForDownload
 }
 
-load_facility_download_file <- function(){
-  read.csv(file = paste0(dataGitRawBase,"/data/facilityDataTableForDownload.csv"))
-}
+#load_facility_download_file <- function(){
+#  read.csv(file = paste0(dataGitRawBase,"facilityDataTableForDownload.csv"))
+#}
