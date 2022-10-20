@@ -64,55 +64,6 @@ get_state_search_data <- function(shapefilepath){
 }
 
 countyStateSf <- get_county_search_data("./shapefiles/cb_2018_us_county_5m.shp","./shapefiles/stateFIPS.csv")
+countyStateSf <- countyStateSf[with(countyStateSf, order(stateName, countyName)), ]
 stateSf <- get_state_search_data("./shapefiles/cb_2018_us_state_5m.shp")
 
-
-## global functions
-
-## store functions
-
-# to get all facility data for downloading off of app
-store_facility_data <- function(unitDataBase){
-  unitData <- unitDataBase %>%
-    mutate("SO2 Controls Installed" = case_when(
-      length(na.omit(so2ControlInfo)) != 0 ~ "Yes",
-      length(na.omit(so2ControlInfo)) == 0 ~ "No"
-    ))
-  
-  unitData <- unitData %>%
-    mutate("NOx Controls Installed" = case_when(
-      length(na.omit(noxControlInfo)) != 0 ~ "Yes",
-      length(na.omit(noxControlInfo)) == 0 ~ "No"
-    ))
-  
-  unitData <- unitData %>%
-    mutate("Particulate Matter Controls Installed" = case_when(
-      length(na.omit(pmControlInfo)) != 0 ~ "Yes",
-      length(na.omit(pmControlInfo)) == 0 ~ "No"
-    ))
-  
-  unitData <- unitData %>%
-    mutate("Mercury Controls Installed" = case_when(
-      length(na.omit(hgControlInfo)) != 0 ~ "Yes",
-      length(na.omit(hgControlInfo)) == 0 ~ "No"
-    ))
-  
-  facilityTableForDownload <- unitData[,c("facilityName","facilityId","stateCode",
-                                          "stateName","county",
-                                          "latitude","longitude","unitId","operatingStatus",
-                                          "primaryFuelInfo","SO2 Controls Installed",
-                                          "NOx Controls Installed", 
-                                          "Particulate Matter Controls Installed",
-                                          "Mercury Controls Installed",
-                                          "year")]
-  names(facilityTableForDownload) <- c("Facility Name","Facility Id","State Code",
-                                       "State Name","County",
-                                       "Latitude","Longitude","Unit Id","Operating Status",
-                                       "Primary Fuels","SO2 Controls Installed",
-                                       "NOx Controls Installed", 
-                                       "Particulate Matter Controls Installed",
-                                       "Mercury Controls Installed",
-                                       "Year of Operation")
-  
-  facilityTableForDownload
-}
