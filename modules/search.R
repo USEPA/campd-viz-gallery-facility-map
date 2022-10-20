@@ -57,46 +57,57 @@ searchServer <- function(input,output,session,df,
                          clearEvent, filterBy,
                          filterVal){
   
+  updateSelectizeInput(
+    session = session,
+    inputId = 'search',
+    choices = cbind(df, value = seq_len(nrow(df))),
+    selected=character(0),
+    server = TRUE)
+  
   dfReactive <- reactiveVal(NULL)
   
-  observe({
-    freezeReactiveValue(input, "filter_value")
-  })
+  #observe({
+  #  freezeReactiveValue(input, "filter_value")
+  #})
   
   observeEvent(filterVal(),{
-    if (!is.null(filterVal)){
-      indexDf <- cbind(df, value = seq_len(nrow(df)))
-      updateSelectizeInput(
-        session = session,
-        inputId = 'search',
-        choices = indexDf[indexDf[[filterBy]]==filterVal(),],
-        selected = character(0),
-        server = TRUE)
-      dfReact <- df %>%
-        rowid_to_column("idx") %>%
-        filter(idx %in% input$search)
-      dfReactive(dfReact)
-    }
-  },ignoreInit = TRUE)
-  
-  observeEvent(clearEvent(),{
+    indexDf <- cbind(df, value = seq_len(nrow(df)))
     updateSelectizeInput(
       session = session,
       inputId = 'search',
-      choices = cbind(df, value = seq_len(nrow(df))),
-      selected=character(0),
+      choices = indexDf[indexDf[[filterBy]]==filterVal(),],
+      selected = character(0),
       server = TRUE)
     dfReact <- df %>%
       rowid_to_column("idx") %>%
       filter(idx %in% input$search)
     dfReactive(dfReact)
-  })
+  },ignoreInit = TRUE)
+  
+  observeEvent(clearEvent(),{
+    if(!is.null(dfReactive())){
+      if(input$search != ""){
+        updateSelectizeInput(
+          session = session,
+          inputId = 'search',
+          choices = cbind(df, value = seq_len(nrow(df))),
+          selected=character(0),
+          server = TRUE)
+        dfReact <- df %>%
+          rowid_to_column("idx") %>%
+          filter(idx %in% input$search)
+        dfReactive(dfReact)
+      }
+    }
+  },ignoreNULL = TRUE)
   
   observeEvent(c(input$search),{
-    dfReact <- df %>%
-      rowid_to_column("idx") %>%
-      filter(idx %in% input$search)
-    dfReactive(dfReact)
+    if(input$search != ""){
+      dfReact <- df %>%
+        rowid_to_column("idx") %>%
+        filter(idx %in% input$search)
+      dfReactive(dfReact)
+    }
   },ignoreInit = TRUE)
   
   return(reactive({dfReactive()}))
