@@ -28,7 +28,6 @@ if(dir.exists(lib_dir))
 
 print(list.files(lib_dir))
 
-library(dotenv)
 library(shiny)
 library(shinydashboard)
 library(shinybusy)
@@ -51,12 +50,11 @@ install.packages(paste0(getwd(),'/tmp/epaRShinyTemplate_0.0.1.tar.gz'), repos=NU
 
 library(epaRShinyTemplate)
 
-load_dot_env(".env")
+# get application environment variables
+APPLICATION_ENV_VARIABLES <- fromJSON(Sys.getenv(c("VCAP_APPLICATION")))
 
 # src scripts
-source("./src/API-calls.R")
 source("./src/static.R")
-source("./src/reactive.R")
 source("./src/functions.R")
 
 # modules
@@ -108,7 +106,8 @@ ui <- tags$main(
   useShinydashboard(),
   
   # easey design template
-  epaSlimHeader("epaNav",'performance'),
+  epaSlimHeader("epaNav",APPLICATION_ENV_VARIABLES$space_name),
+  #epaSlimHeader("epaNav","local"),
   
   # dark blue banner
   div(class="banner",
@@ -173,8 +172,9 @@ ui <- tags$main(
             div(class="grid-container download-buttons",
                 div(class="grid-row",
                     div(class="grid-col-auto",
-                        downloadButton(class="usa-button","download_facility_data","Download Facility Data CSV"),
+                        actionButton(class="usa-button","init_facility_data", "Download Facility Data CSV", icon = icon("download")),
                         actionButton(class="usa-button","init_compliance_data", "Download Compliance Data CSV", icon = icon("download")),
+                        downloadButton(style = "visibility: hidden;","download_facility_data",""),
                         downloadButton(style = "visibility: hidden;","download_compliance_data",""))
                 )
                 
@@ -216,8 +216,7 @@ ui <- tags$main(
                                               items='countyName'))
                             ),
                             
-                            div(class="select-clear", actionButton(class="usa-button","init_clearSearch","Clear Search")),
-                            div(actionButton(style = "visibility: hidden;","clearSearch",""))
+                            div(class="select-clear", actionButton(class="usa-button","clearSearch","Clear Search")),
                             
                         )
                  ),
@@ -283,72 +282,127 @@ ui <- tags$main(
 
 server <- function(input, output, session) {
   
-  observe({
-    
-    load_global_vars()
-    load_map_data()
-    
-    updateSelectizeInput(session, "programSelection",
-                         choices=c("Select All",unique(na.omit(programInfo$currentPrograms$programShorthandDescription))))
-    
-    output$gettingStartedText <- renderUI({ 
-      div(
-        p("This map currently uses ",tags$strong(as.character(latestComplianceYear)),
-            " data to show the location of facilities along with basic information on 
-            their facility/unit attributes and compliance performance as part of 
-            EPA’s emissions trading programs (this does not include non-allowance programs 
-            such as Acid Rain Program NOx or state programs such as Regional Greenhouse Gas Initiative).
-            More resources on these programs can be found at ",
-            tags$a(class="usa-link",href="https://www.epa.gov/airmarkets/programs", 
-                   "EPA's Clean Air Markets Programs web area",
-                   target="_blank", .noWS = "outside"),
-            ".", .noWS = c("after-begin", "before-end")),
-        
-        p("Interested in exploring the data further? Check out ",
-          tags$a(class="usa-link",href="https://campd.epa.gov/data", 
-                 "CAMPD's data section",
+  # Get all current programs
+  allPrograms <- read.csv(paste0(dataGitRawBase,"programTable.csv"))
+  currentPrograms <- allPrograms[(allPrograms$retiredIndicator==FALSE),]
+  
+  # Get all allowance programs 
+  allCompliancePrograms <- allPrograms[allPrograms$allowanceUIFilter == TRUE,]
+  compliancePrograms <- allCompliancePrograms
+  
+  for (i in 1:nrow(allCompliancePrograms)){
+    if (!is.na(allCompliancePrograms$complianceYears[i])){
+      allCompliancePrograms$complianceYears[i] <- list(c(as.integer(unlist(strsplit(compliancePrograms$complianceYears[i], ",")))))
+    }
+    if (!is.na(allCompliancePrograms$emissionYears[i])){
+      allCompliancePrograms$emissionYears[i] <- list(c(as.integer(unlist(strsplit(compliancePrograms$emissionYears[i], ",")))))
+    }
+  }
+  
+  currentCompliancePrograms <- allCompliancePrograms[allCompliancePrograms$retiredIndicator == FALSE,]
+  
+  latestComplianceYear <- min(na.omit(unlist(lapply(currentCompliancePrograms$programCode, function(program){
+    max(unlist(currentCompliancePrograms$complianceYears[currentCompliancePrograms$programCode == program]))
+  }))))
+  
+  # MAIN DATA SETS #
+  unitData <- read.csv(file = paste0(dataGitRawBase,"facilityDataTableForDownload.csv"))
+  complianceData <- read.csv(file = paste0(dataGitRawBase,"complianceDataTableForDownload.csv"))
+  
+  updateSelectizeInput(session, "programSelection",
+                       choices=c("Select All",unique(na.omit(currentPrograms$programShorthandDescription))))
+  
+  output$gettingStartedText <- renderUI({ 
+    div(
+      p("This map currently uses ",tags$strong(as.character(latestComplianceYear)),
+          " data to show the location of facilities along with basic information on 
+          their facility/unit attributes and compliance performance as part of 
+          EPA’s emissions trading programs (this does not include non-allowance programs 
+          such as Acid Rain Program NOx or state programs such as Regional Greenhouse Gas Initiative).
+          More resources on these programs can be found at ",
+          tags$a(class="usa-link",href="https://www.epa.gov/airmarkets/programs", 
+                 "EPA's Clean Air Markets Programs web area",
                  target="_blank", .noWS = "outside"),
-          "!", .noWS = c("after-begin", "before-end")),
-        p("Expand the boxes below to see more."),
+          ".", .noWS = c("after-begin", "before-end")),
+      
+      p("Interested in exploring the data further? Check out ",
+        tags$a(class="usa-link",href="https://campd.epa.gov/data", 
+               "CAMPD's data section",
+               target="_blank", .noWS = "outside"),
+        "!", .noWS = c("after-begin", "before-end")),
+      p("Expand the boxes below to see more."),
+    )
+  })
+  
+  output$howToUseBox <- renderUI({
+    div(
+      tags$ul(class="intro-list",
+              tags$li("The ",
+                      tags$img(src='https://raw.githubusercontent.com/USEPA/campd-viz-gallery-data-files/main/images/cluster.png', 
+                               width='27px',height='27px',alt="facility cluster marker",
+                               style="min-width:27px;"),
+                      " icons on the map represent an area where two or more facilities are located. 
+                      The number in the middle represents the number of facilities in that general area."),
+              tags$li("You can zoom in on the map to reveal the individual facilities, marked by ",
+                      tags$img(src='https://unpkg.com/leaflet@1.3.1/dist/images/marker-icon-2x.png', 
+                               width='20px',height='35px',alt = "facility marker"),
+                      "."),
+              tags$li("Hover your mouse pointer over the ",
+                      tags$img(src='https://unpkg.com/leaflet@1.3.1/dist/images/marker-icon-2x.png', 
+                               width='20px',height='35px',alt = "facility marker"),
+                      " to see the facility name."),
+              tags$li("Click on a ",
+                      tags$img(src='https://unpkg.com/leaflet@1.3.1/dist/images/marker-icon-2x.png', 
+                               width='20px',height='35px',alt = "facility marker"),
+                      " on the map to view a facility's attribute and 
+      program compliance information using the map's side panel ",
+                      '"Facility Summary" and "Compliance Summary" expandable boxes.'),
+              tags$li('Use the state and county search to find facilities near you.'),
+              tags$li(class="indent",'Selecting a state first will refine the county 
+              search to only counties within the selected state.'),
+              tags$li(class="indent",'Note that the county search box is grouped by state.'),
+              tags$li('Use the facility filter to narrow down facilities by trading program.'),
+              tags$li('Use the clear buttons to clear filters or searches.'),
+              tags$li(paste0('Facility Summary displays basic facility/unit attribute information 
+              for the ',as.character(latestComplianceYear),' operating year.')),
+              tags$li(paste0("Compliance Summary displays compliance information for 
+              CAMD's emissions trading programs applicable to the chosen facility for ",
+                             as.character(latestComplianceYear),' and 
+              any previous years the facility was non-compliant.')),
       )
-    })
+    )
+  })
     
-    output$howToUseBox <- renderUI({
-      div(
-        tags$ul(class="intro-list",
-                tags$li("The ",
-                        tags$img(src='https://raw.githubusercontent.com/USEPA/campd-viz-gallery-data-files/main/images/cluster.png', 
-                                 width='27px',height='27px',alt="facility cluster marker (9)",
-                                 style="min-width:27px;"),
-                        " icons on the map represent an area where two or more facilities are located. 
-                        The number in the middle represents the number of facilities in that general area."),
-                tags$li("You can zoom in on the map to reveal the individual facilities, marked by ",
-                        tags$img(src='https://unpkg.com/leaflet@1.3.1/dist/images/marker-icon-2x.png', 
-                                 width='20px',height='35px',alt = "facility marker"),
-                        "."),
-                tags$li("Hover your mouse pointer over the icon to see the facility name."),
-                tags$li("Click on a ",
-                        tags$img(src='https://unpkg.com/leaflet@1.3.1/dist/images/marker-icon-2x.png', 
-                                 width='20px',height='35px',alt = "facility marker"),
-                        " on the map to view a facility's attribute and 
-        program compliance information using the map's side panel ",
-                        '"Facility Summary" and "Compliance Summary" expandable boxes.'),
-                tags$li('Use the state and county search to find facilities near you.'),
-                tags$li(class="indent",'Selecting a state first will refine the county 
-                search to only counties within the selected state.'),
-                tags$li(class="indent",'Note that the county search box is grouped by state.'),
-                tags$li('Use the facility filter to narrow down facilities by trading program.'),
-                tags$li('Use the clear buttons to clear filters or searches.'),
-                tags$li(paste0('Facility Summary displays basic facility/unit attribute information 
-                for the ',as.character(latestComplianceYear),' operating year.')),
-                tags$li(paste0("Compliance Summary displays compliance information for 
-                CAMD's emissions trading programs applicable to the chosen facility for ",
-                               as.character(latestComplianceYear),' and 
-                any previous years the facility was non-compliant.')),
+  
+  observeEvent(input$init_facility_data, {
+    
+    res <- GET("https://github.com/USEPA/campd-viz-gallery-data-files/raw/main/data/facility-map")
+    
+    if (!(res$status_code %in% c(200,304))){
+      debugging('Compliance data download crash - %s', e)
+      
+      showModal(
+        modalDialog(
+          div(class="font-sans-xs text-base-darkest text-ls-1 line-height-sans-5",
+              h3(class="font-sans-md text-bold","Download Interrupted"),
+              p("The download has been interrupted or failed. Try again or reach out to",tags$a(class="usa-link" ,
+                                                                                                href="mailto:campd-support@camdsupport.com?subject=CAMPD Visualization Gallery - Facility Map" ,
+                                                                                                target="_blank", rel="noopener noreferrer",
+                                                                                                `aria-label`="Contact Support for Facility Map",
+                                                                                                "campd-support@camdsupport.com"),
+                "if you continue to encounter this error."
+              )
+              
+          ),
+          footer = tagList(actionButton(class="usa-button modal-close-button","closeCompModal", "OK")),
+          easyClose = FALSE
         )
       )
-    })
+    }
     
+    else {
+      shinyjs::runjs("document.getElementById('download_facility_data').click();")
+    }
   })
   
   output$download_facility_data <- downloadHandler(
@@ -359,39 +413,33 @@ server <- function(input, output, session) {
     }
   )
   
-  compliance_download_data <- reactiveVal(NULL)
-  
   observeEvent(input$init_compliance_data, {
     
-    tryCatch({
-      compliance_download_data(load_compliance_download_file())
-    },
-    error = function(e) {
+    res <- GET("https://github.com/USEPA/campd-viz-gallery-data-files/raw/main/data/facility-map")
+    
+    if (!(res$status_code %in% c(200,304))){
       debugging('Compliance data download crash - %s', e)
       
-      return(NULL)
-    })
-    
-    
-    if (is.null(compliance_download_data())) {
       showModal(
         modalDialog(
           div(class="font-sans-xs text-base-darkest text-ls-1 line-height-sans-5",
               h3(class="font-sans-md text-bold","Download Interrupted"),
               p("The download has been interrupted or failed. Try again or reach out to",tags$a(class="usa-link" ,
-                                                                      href="mailto:campd-support@camdsupport.com?subject=CAMPD Visualization Gallery - Facility Map" ,
-                                                                      target="_blank", rel="noopener noreferrer",
-                                                                      `aria-label`="Contact Support for Facility Map",
-                                                                      "campd-support@camdsupport.com"),
+                                                                                                href="mailto:campd-support@camdsupport.com?subject=CAMPD Visualization Gallery - Facility Map" ,
+                                                                                                target="_blank", rel="noopener noreferrer",
+                                                                                                `aria-label`="Contact Support for Facility Map",
+                                                                                                "campd-support@camdsupport.com"),
                 "if you continue to encounter this error."
-                )
+              )
               
           ),
           footer = tagList(actionButton(class="usa-button modal-close-button","closeCompModal", "OK")),
           easyClose = FALSE
         )
       )
-    } else {
+    }
+    
+    else {
       shinyjs::runjs("document.getElementById('download_compliance_data').click();")
     }
   })
@@ -405,21 +453,22 @@ server <- function(input, output, session) {
   output$download_compliance_data <- downloadHandler(
     filename =  function() { paste0("compliance-data.csv") },
     content = function(file) {
-      write.csv(compliance_download_data(), file, row.names = FALSE)
+      GET("https://github.com/USEPA/campd-viz-gallery-data-files/raw/main/data/facility-map/complianceDataTableForDownload.csv", write_disk(file))
     }
   )
   
   # State and county searches
   stateFilterVal <- reactiveVal({NULL})
   countyFilterVal <- reactiveVal({NULL})
-  markerData <- reactiveVal({programFacilityData})
+  clearSearchTrigger <- reactiveVal({1})
+  markerData <- reactiveVal({NULL})
   
   stateSearch <- callModule(searchServer,"stateSearchInput",
-                            stateSf,reactive(c(input$clearSearch)),
+                            stateSf,reactive({input$clearSearch}),
                             filterBy='stateName',
                             filterVal=reactive(c()))
   coutSearch <- callModule(searchServer,"countySearchInput",
-                           countyStateSf,reactive(c(input$clearSearch)),
+                           countyStateSf,reactive({input$clearSearch}),
                            filterBy='stateName',
                            filterVal=stateFilterVal)
   
@@ -427,7 +476,6 @@ server <- function(input, output, session) {
     if (nrow(stateSearch()) != 0){
       # State search selected is filled to pass to county search in order to clear the
       # county search
-      stateFilterVal(NULL)
       stateFilterVal(stateSearch()$stateName)
       # display county outline and zoom to location
       update_map_search(markerData(),stateSf,stateSearch(),'stateName','stateOutline')
@@ -437,7 +485,6 @@ server <- function(input, output, session) {
     if (nrow(coutSearch()) != 0){
       # County search selected is filled to pass to state search in order to clear the
       # state search
-      countyFilterVal(NULL)
       countyFilterVal(coutSearch()$stateName)
       # display county outline and zoom to location
       update_map_search(markerData(),countyStateSf,coutSearch(),'countyns','countyOutline')
@@ -445,21 +492,18 @@ server <- function(input, output, session) {
   },ignoreNULL = TRUE)
   # If something is selected in one of the searches, the map is cleared and
   # re-rendered, otherwise nothing happens
-  observeEvent(input$init_clearSearch,{
-    print(countyFilterVal())
-    print(stateFilterVal())
-    shinyjs::runjs("document.getElementById('clearSearch').click();")
-  })
-  
   observeEvent(input$clearSearch,{
-    if (length(input$programSelection) != 0){
-      if (input$programSelection == "Select All"){
-        update_full_map(markerData())
-      }
-      else{
-        shapeFileData <- stateSf[stateSf$stateName %in% unique(markerData()$stateName),]
-        
-        update_map_filter_selections(markerData(),shapeFileData)
+    if(!(is.null(countyFilterVal()) & is.null(stateFilterVal()))){
+      stateFilterVal(NULL)
+      countyFilterVal(NULL)
+      if (length(input$programSelection) != 0){
+        if (input$programSelection == "Select All"){
+          update_full_map(markerData())
+        }
+        else{
+          shapeFileData <- stateSf[stateSf$stateName %in% unique(markerData()$stateName),]
+          update_map_filter_selections(markerData(),shapeFileData)
+        }
       }
     }
   },ignoreInit = TRUE)
@@ -469,21 +513,21 @@ server <- function(input, output, session) {
   observeEvent(input$programSelection,{
     if (length(input$programSelection) != 0){
       if (input$programSelection != "Select All"){
-        programSelected <- programInfo$currentPrograms$programCode[programInfo$currentPrograms$programShorthandDescription == input$programSelection]
-        markerData(filter_facility_latlong_data(programFacilityData[programFacilityData$programCode == programSelected,]))
+        programSelected <- currentPrograms$programCode[currentPrograms$programShorthandDescription == input$programSelection]
         
-        if ((nrow(stateSearch()) != 0) | (nrow(coutSearch()) != 0)){
+        markerData(filter_facility_latlong_data(unitData[grepl(paste0('\\',programSelected,'\\b'), unitData$programCodeInfo),]))
+        
+        if (!is.null(stateFilterVal()) | !is.null(countyFilterVal())){
           update_map_with_shape_maintained(markerData())
         }
         else{
           shapeFileData <- stateSf[stateSf$stateName %in% unique(markerData()$stateName),]
-          
           update_map_filter_selections(markerData(),shapeFileData)
         }
       }
       else{
-        markerData(filter_facility_latlong_data(programFacilityData))
-        if ((nrow(stateSearch()) != 0) | (nrow(coutSearch()) != 0)){
+        markerData(filter_facility_latlong_data(unitData))
+        if (!is.null(stateFilterVal()) | !is.null(countyFilterVal())){
           update_map_with_shape_maintained(markerData())
         }
         else{
@@ -495,21 +539,12 @@ server <- function(input, output, session) {
   })
   # Clear filters and reinitialize the map
   observeEvent(input$clearFilters,{
-    if (length(input$programSelection) != 0){
-      if (input$programSelection != "Select All"){
-        markerData(filter_facility_latlong_data(programFacilityData))
-        if ((nrow(stateSearch()) != 0) | (nrow(coutSearch()) != 0)){
-          update_map_with_shape_maintained(markerData())
-        }
-        else{
-          update_full_map(markerData())
-        }
-        updateSelectizeInput(
-          session = session,
-          inputId = "programSelection",
-          selected = c("Select All"))
-        
-      }
+    if (input$programSelection != "Select All"){
+      updateSelectizeInput(
+        session = session,
+        inputId = "programSelection",
+        selected = c("Select All"))
+      
     }
   }, ignoreInit = TRUE)
   
@@ -523,7 +558,7 @@ server <- function(input, output, session) {
   
   # Initialize leaflet
   output$map <- renderLeaflet({
-    mapData <- filter_facility_latlong_data(programFacilityData)
+    mapData <- filter_facility_latlong_data(unitData)
     legendText <- tagList(div(class="display-table font-sans-xs line-height-sans-2 maxw-mobile padding-x-1",
                               div(class="display-table-row padding-bottom-1",
                                   div(class="display-table-cell padding-right-1 text-middle text-center",
@@ -551,7 +586,7 @@ server <- function(input, output, session) {
   })
   
   # min Longitude , min Latitude , max Longitude , max Latitude 
-  # "boundingbox":["51.2867602","51.6918741","-0.5103751","0.3340155"]
+  # "boundingbox":[-158.1283,17.9477,-66.1037,63.8542]
   # Update map and include shape file outline that was selected in the search
   update_map_search <- function(markerData,shapeFileData,searchRow,layer,group){
     bbox <- st_bbox(shapeFileData[searchRow,]) %>% 
@@ -779,7 +814,7 @@ server <- function(input, output, session) {
   # Show a popup at the given location
   showFacInfoPopup <- function(fac_id, lat, lng) {
     # Pick first row of unit data
-    selectedFac <- unique(programFacilityData[programFacilityData$facilityId == fac_id,c("facilityName","county","stateCode","stateName")])
+    selectedFac <- unique(unitData[unitData$facilityId == fac_id,c("facilityName","county","stateCode","stateName")])
     content <- as.character(
       tagList(
         div(class="font-sans-xs line-height-sans-5",
@@ -797,8 +832,8 @@ server <- function(input, output, session) {
   # collect and output facility information for display
   get_facility_info_for_side_panel <- function(facilityId){
     
-    selectedUnitFac <- unitData[unitData$facilityId == facilityId,]
-    selectedFac <- unique(programFacilityData[programFacilityData$facilityId == facilityId,c("facilityName","county","stateCode","stateName")])
+    selectedUnitFac <- unitData[unitData["facilityId"] == facilityId,]
+    selectedFac <- unique(selectedUnitFac[,c("facilityName","county","stateCode","stateName")])
     fuelTypesStg <- paste0(unique(selectedUnitFac$primaryFuelInfo),collapse = ", ")
     operatingStatuses <- paste0(lapply(sort(selectedUnitFac$unitId),function(unit){
       paste0("<strong>",unit,"</strong>",": ",selectedUnitFac$operatingStatus[selectedUnitFac$unitId == unit])
@@ -808,7 +843,7 @@ server <- function(input, output, session) {
       unlist(str_split(cell,","))
     }))
     
-    if ((length(intersect(subjectedPrograms, programInfo$currentCompliancePrograms$programCode)) == 0) &&
+    if ((length(intersect(subjectedPrograms, currentCompliancePrograms$programCode)) == 0) &&
         (is.na(unique(selectedUnitFac$primaryFuelInfo)))){
       fuelTypesStg <- "Not reported"
       so2Controls <- "Not reported"
@@ -819,19 +854,19 @@ server <- function(input, output, session) {
     }
     
     else {
-      if(length(na.omit(unitData$so2ControlInfo[unitData$facilityId == facilityId])) != 0){
+      if("Yes" %in% unitData$so2ControlsInstalled){
         so2Controls <- "Yes"
       }
       else{so2Controls <- "No"}
-      if(length(na.omit(unitData$noxControlInfo[unitData$facilityId == facilityId])) != 0){
+      if("Yes" %in% unitData$noxControlsInstalled){
         noxControls <- "Yes"
       }
       else{noxControls <- "No"}
-      if(length(na.omit(unitData$pmControlInfo[unitData$facilityId == facilityId])) != 0){
+      if("Yes" %in% unitData$particulateMatterControlsInstalled){
         pmControls <- "Yes"
       }
       else{pmControls <- "No"}
-      if(length(na.omit(unitData$hgControlInfo[unitData$facilityId == facilityId])) != 0){
+      if("Yes" %in% unitData$mercuryControlsInstalled){
         hgControls <- "Yes"
       }
       else{hgControls <- "No"}
@@ -863,19 +898,15 @@ server <- function(input, output, session) {
   
   get_compliance_info_for_side_panel <- function(facilityId){
     
-    selectedFac <- unique(programFacilityData[programFacilityData$facilityId == facilityId,c("facilityName","county","stateCode","stateName")])
+    selectedFac <- unique(complianceData[complianceData$facilityId == facilityId,])
+    selectedFac <- merge(selectedFac, allPrograms[,c("programCode","programShorthandDescription")],all.x=TRUE)
     
-    complianceYears <- as.list(unique(na.omit(unlist(programInfo$allCompliancePrograms$complianceYears))))
-    
-    allYearComplianceFacilityData <- get_allow_comp_data(complianceYears,facilities=c(facilityId))
-    accountInfo <- get_account_info_data(facilities=c(facilityId))
-    
-    accountNumber <- as.character(accountInfo$accountNumber[accountInfo$accountNumber %like% 'FACLTY'][1])
-    if (length(accountNumber) == 0){
+    accountNumber <- as.character(selectedFac$accountNumber[1])
+    if (is.na(selectedFac$accountNumber[1])){
       accountNumber <- "No CAMD compliance account associated with this facility."
     }
     
-    if(length(allYearComplianceFacilityData)==0){
+    if(nrow(selectedFac)==0){
       subjectedPrograms <- tagList(sprintf(" %s", "This facility has no historical compliance record for CAMD's emissions trading programs."),
                                    tags$br())
       complianceDisplayTable <- ""
@@ -883,10 +914,10 @@ server <- function(input, output, session) {
     }
     
     else{
-      latestComplianceFacilityData <- allYearComplianceFacilityData[allYearComplianceFacilityData$year == latestComplianceYear,]
-      subjectedProgramsCodes <- unique(latestComplianceFacilityData$programCodeInfo)
-      subjectedPrograms <- programInfo$allPrograms$programShorthandDescription[programInfo$allPrograms$programCode %in% subjectedProgramsCodes]
-      #subjectedPrograms <- paste0(subjectedPrograms,collapse = ", ")
+      latestComplianceFacilityData <- selectedFac[selectedFac$year == latestComplianceYear,]
+      subjectedProgramsCodes <- unique(latestComplianceFacilityData$programCode)
+      subjectedPrograms <- allPrograms$programShorthandDescription[allPrograms$programCode %in% subjectedProgramsCodes]
+      
       if (length(subjectedPrograms) == 0){
         subjectedPrograms <-tagList(sprintf(" %s",  "CAMD's emissions trading programs are not currently applicable to this facility."),
                                     tags$br())
@@ -894,14 +925,9 @@ server <- function(input, output, session) {
       }
       else{
         subjectedPrograms <- tagList(HTML(getListHTML(subjectedPrograms)))
-        compTableForLatestYear <- bind_rows(lapply(latestComplianceFacilityData$programCodeInfo, function(prg){
-          if (is.na(latestComplianceFacilityData$excessEmissions[latestComplianceFacilityData$programCodeInfo == prg])){
-            compStr <- "Yes"
-          }
-          else{compStr <- "No"}
-          programShorthandDescription <- programInfo$allPrograms$programShorthandDescription[programInfo$allPrograms$programCode == prg]
-          c("Program"=programShorthandDescription, "In compliance?"=compStr)
-        }))
+        
+        compTableForLatestYear <- latestComplianceFacilityData[,c("programShorthandDescription","inCompliance.")]
+        names(compTableForLatestYear) <- c("Program","In Compliance?")
         
         complianceDisplayTable <- tagList(
           tags$h5(class="font-sans-md text-bold",tags$u(paste0("Compliance for ",latestComplianceYear,":"))),
@@ -909,23 +935,19 @@ server <- function(input, output, session) {
         )
       }
       
-      previousComplianceFacilityData <- allYearComplianceFacilityData[allYearComplianceFacilityData$year < latestComplianceYear,]
+      previousComplianceFacilityData <- na.omit(selectedFac[selectedFac$year < latestComplianceYear,])
       
-      if(length(na.omit(previousComplianceFacilityData$excessEmissions)) == 0){
+      if(nrow(previousComplianceFacilityData) == 0){
         outOfComplianceTable <- tagList(
           tags$h5(class="font-sans-md text-bold",tags$u("Non-Compliant Years:")),
           HTML("This facility has no record of non-compliance for applicable CAMD emissions trading programs.")
         )
       }
       else{
-        compYearsOutOfComp <- bind_rows(lapply(1:nrow(previousComplianceFacilityData), function(row){
-          if (!is.na(previousComplianceFacilityData[row,"excessEmissions"])){
-            programShorthandDescription <- programInfo$allPrograms$programShorthandDescription[programInfo$allPrograms$programCode == previousComplianceFacilityData$programCodeInfo[row]]
-            c("Program"=programShorthandDescription, 
-              "Year"=previousComplianceFacilityData$year[row],
-              "In compliance?"="No")
-          }
-        }))
+        
+        compYearsOutOfComp <- previousComplianceFacilityData[,c("programShorthandDescription","inCompliance.")]
+        names(compYearsOutOfComp) <- c("Program","In Compliance?")
+        
         outOfComplianceTable <- tagList(
           tags$h5(class="font-sans-md text-bold",tags$u("Non-Compliant Years:")),
           HTML(getTableHTML(compYearsOutOfComp)),
@@ -936,7 +958,7 @@ server <- function(input, output, session) {
     
     content <- 
       tagList(
-        tags$h4(class="font-sans-lg text-bold",selectedFac$facilityName),
+        tags$h4(class="font-sans-lg text-bold",selectedFac$facilityName[1]),
         tags$strong("Account Number:"),sprintf(" %s", accountNumber),
         tags$h5(class="font-sans-md text-bold",tags$u("Applicable Programs:")),
         subjectedPrograms,
