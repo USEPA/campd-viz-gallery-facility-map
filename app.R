@@ -335,7 +335,7 @@ server <- function(input, output, session) {
     div(
       tags$ul(class="intro-list",
               tags$li("The ",
-                      tags$img(src='https://raw.githubusercontent.com/USEPA/campd-viz-gallery-data-files/main/images/cluster.png', 
+                      tags$img(src='https://raw.githubusercontent.com/USEPA/campdRShinyDataSource/main/images/cluster.png', 
                                width='27px',height='27px',alt="facility cluster marker",
                                style="min-width:27px;"),
                       " icons on the map represent an area where two or more facilities are located. 
@@ -491,7 +491,7 @@ server <- function(input, output, session) {
     legendText <- tagList(div(class="display-table font-sans-xs line-height-sans-2 maxw-mobile padding-x-1",
                               div(class="display-table-row padding-bottom-1",
                                   div(class="display-table-cell padding-right-1 text-middle text-center",
-                                      tags$img(src='https://raw.githubusercontent.com/USEPA/campd-viz-gallery-data-files/main/images/cluster.png', 
+                                      tags$img(src='https://raw.githubusercontent.com/USEPA/campdRShinyDataSource/main/images/cluster.png', 
                                                width='27px',height='27px',alt="facility cluster marker",
                                                style="min-width:27px;")),
                                   div(class="display-table-cell padding-y-1",
