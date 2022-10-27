@@ -2,10 +2,7 @@
 
 # clear quotes below while deploying
 
-## CHANGE ALL URLS TO CORRECT REPO 
-# cluster pngs
-
-library_path <- paste("Library Path: ", Sys.getenv(c("LD_LIBRARY_PATH")))
+'library_path <- paste("Library Path: ", Sys.getenv(c("LD_LIBRARY_PATH")))
 print(paste("LD_LIBRARY_PATH: ", library_path))
 
 lib_dir <- "/home/vcap/deps/0/r/lib"
@@ -26,7 +23,7 @@ if(dir.exists(lib_dir))
   Sys.setenv(PROJ_LIB=lib_dir)
 }
 
-print(list.files(lib_dir))
+print(list.files(lib_dir))'
 
 library(shiny)
 library(shinydashboard)
@@ -51,7 +48,7 @@ install.packages(paste0(getwd(),'/tmp/epaRShinyTemplate_0.0.1.tar.gz'), repos=NU
 library(epaRShinyTemplate)
 
 # get application environment variables
-APPLICATION_ENV_VARIABLES <- fromJSON(Sys.getenv(c("VCAP_APPLICATION")))
+#APPLICATION_ENV_VARIABLES <- fromJSON(Sys.getenv(c("VCAP_APPLICATION")))
 
 # src scripts
 source("./src/static.R")
@@ -106,8 +103,8 @@ ui <- tags$main(
   useShinydashboard(),
   
   # easey design template
-  epaSlimHeader("epaNav",APPLICATION_ENV_VARIABLES$space_name),
-  #epaSlimHeader("epaNav","local"),
+  #epaSlimHeader("epaNav",APPLICATION_ENV_VARIABLES$space_name),
+  epaSlimHeader("epaNav","local"),
   
   # dark blue banner
   div(class="banner",
@@ -172,10 +169,9 @@ ui <- tags$main(
             div(class="grid-container download-buttons",
                 div(class="grid-row",
                     div(class="grid-col-auto",
-                        actionButton(class="usa-button","init_facility_data", "Download Facility Data CSV", icon = icon("download")),
-                        actionButton(class="usa-button","init_compliance_data", "Download Compliance Data CSV", icon = icon("download")),
-                        downloadButton(style = "visibility: hidden;","download_facility_data",""),
-                        downloadButton(style = "visibility: hidden;","download_compliance_data",""))
+                        downloadButton(class="usa-button","download_facility_data", "Download Facility Data CSV"),
+                        downloadButton(class="usa-button","download_compliance_data", "Download Compliance Data CSV")
+                    )
                 )
                 
             )),
@@ -271,7 +267,8 @@ ui <- tags$main(
     
     div(class="position-relative",
         div(class="position-fixed .pin-bottom.pin-x z-top",
-            epaSlimFooter("epaFoot", appVersion = "v0.0.0", appPublished = "local")
+            #epaSlimFooter("epaFoot", appVersion = Sys.getenv(c("APP_VERSION")), appPublished = format(Sys.Date(),"%a %b %d %Y"))
+            epaSlimFooter("epaFoot", appVersion = "v1.0.0", appPublished = format(Sys.Date(),"%a %b %d %Y"))
         )
     )
     
@@ -315,11 +312,11 @@ server <- function(input, output, session) {
   output$gettingStartedText <- renderUI({ 
     div(
       p("This map currently uses ",tags$strong(as.character(latestComplianceYear)),
-          " data to show the location of facilities along with basic information on 
-          their facility/unit attributes and compliance performance as part of 
-          EPA’s emissions trading programs (this does not include non-allowance programs 
-          such as Acid Rain Program NOx or state programs such as Regional Greenhouse Gas Initiative).
-          More resources on these programs can be found at ",
+          " data to show the location of facilities along with their basic attribute information 
+          and compliance performance as part of EPA’s emissions trading programs (NOTE: Compliance 
+          data is not available for non-allowance programs such as Acid Rain Program NOx or state 
+          programs such as Regional Greenhouse Gas Initiative). More resources on these programs 
+          can be found at ",
           tags$a(class="usa-link",href="https://www.epa.gov/airmarkets/programs", 
                  "EPA's Clean Air Markets Programs web area",
                  target="_blank", .noWS = "outside"),
@@ -361,7 +358,7 @@ server <- function(input, output, session) {
               tags$li(class="indent",'Selecting a state first will refine the county 
               search to only counties within the selected state.'),
               tags$li(class="indent",'Note that the county search box is grouped by state.'),
-              tags$li('Use the facility filter to narrow down facilities by trading program.'),
+              tags$li('Use the facility filter to narrow down facilities by regulatory program.'),
               tags$li('Use the clear buttons to clear filters or searches.'),
               tags$li(paste0('Facility Summary displays basic facility/unit attribute information 
               for the ',as.character(latestComplianceYear),' operating year.')),
@@ -372,88 +369,18 @@ server <- function(input, output, session) {
       )
     )
   })
-    
-  
-  observeEvent(input$init_facility_data, {
-    
-    res <- GET("https://github.com/USEPA/campd-viz-gallery-data-files/raw/main/data/facility-map")
-    
-    if (!(res$status_code %in% c(200,304))){
-      debugging('Compliance data download crash - %s', e)
-      
-      showModal(
-        modalDialog(
-          div(class="font-sans-xs text-base-darkest text-ls-1 line-height-sans-5",
-              h3(class="font-sans-md text-bold","Download Interrupted"),
-              p("The download has been interrupted or failed. Try again or reach out to",tags$a(class="usa-link" ,
-                                                                                                href="mailto:campd-support@camdsupport.com?subject=CAMPD Visualization Gallery - Facility Map" ,
-                                                                                                target="_blank", rel="noopener noreferrer",
-                                                                                                `aria-label`="Contact Support for Facility Map",
-                                                                                                "campd-support@camdsupport.com"),
-                "if you continue to encounter this error."
-              )
-              
-          ),
-          footer = tagList(actionButton(class="usa-button modal-close-button","closeCompModal", "OK")),
-          easyClose = FALSE
-        )
-      )
-    }
-    
-    else {
-      shinyjs::runjs("document.getElementById('download_facility_data').click();")
-    }
-  })
   
   output$download_facility_data <- downloadHandler(
     filename =  function() { paste0("facility-data-",as.character(latestComplianceYear),".csv") },
     content = function(file) {
-      #write.csv(facility_download_data(), file, row.names = FALSE)
-      GET("https://github.com/USEPA/campd-viz-gallery-data-files/raw/main/data/facility-map/facilityDataTableForDownload.csv", write_disk(file))
+      GET("https://github.com/USEPA/campdRShinyDataSource/raw/main/data/facility-map/facilityDataTableForDownload.csv", write_disk(file))
     }
   )
-  
-  observeEvent(input$init_compliance_data, {
-    
-    res <- GET("https://github.com/USEPA/campd-viz-gallery-data-files/raw/main/data/facility-map")
-    
-    if (!(res$status_code %in% c(200,304))){
-      debugging('Compliance data download crash - %s', e)
-      
-      showModal(
-        modalDialog(
-          div(class="font-sans-xs text-base-darkest text-ls-1 line-height-sans-5",
-              h3(class="font-sans-md text-bold","Download Interrupted"),
-              p("The download has been interrupted or failed. Try again or reach out to",tags$a(class="usa-link" ,
-                                                                                                href="mailto:campd-support@camdsupport.com?subject=CAMPD Visualization Gallery - Facility Map" ,
-                                                                                                target="_blank", rel="noopener noreferrer",
-                                                                                                `aria-label`="Contact Support for Facility Map",
-                                                                                                "campd-support@camdsupport.com"),
-                "if you continue to encounter this error."
-              )
-              
-          ),
-          footer = tagList(actionButton(class="usa-button modal-close-button","closeCompModal", "OK")),
-          easyClose = FALSE
-        )
-      )
-    }
-    
-    else {
-      shinyjs::runjs("document.getElementById('download_compliance_data').click();")
-    }
-  })
-  
-  observeEvent(input$closeCompModal, {
-    removeModal()
-    js$enableElements()
-    js$focusOnComplianceDownload()
-  },ignoreNULL = TRUE)
   
   output$download_compliance_data <- downloadHandler(
     filename =  function() { paste0("compliance-data.csv") },
     content = function(file) {
-      GET("https://github.com/USEPA/campd-viz-gallery-data-files/raw/main/data/facility-map/complianceDataTableForDownload.csv", write_disk(file))
+      GET("https://github.com/USEPA/campdRShinyDataSource/raw/main/data/facility-map/complianceDataTableForDownload.csv", write_disk(file))
     }
   )
   
@@ -478,22 +405,22 @@ server <- function(input, output, session) {
       # county search
       stateFilterVal(stateSearch()$stateName)
       # display county outline and zoom to location
-      update_map_search(markerData(),stateSf,stateSearch(),'stateName','stateOutline')
+      update_map_search(stateSf,stateSearch(),'stateName')
     }
-  }, ignoreNULL = TRUE)
+  }, ignoreInit = TRUE)
   observeEvent(coutSearch(),{
     if (nrow(coutSearch()) != 0){
       # County search selected is filled to pass to state search in order to clear the
       # state search
       countyFilterVal(coutSearch()$stateName)
       # display county outline and zoom to location
-      update_map_search(markerData(),countyStateSf,coutSearch(),'countyns','countyOutline')
+      update_map_search(countyStateSf,coutSearch(),'countyns')
     }
   },ignoreNULL = TRUE)
   # If something is selected in one of the searches, the map is cleared and
   # re-rendered, otherwise nothing happens
   observeEvent(input$clearSearch,{
-    if(!(is.null(countyFilterVal()) & is.null(stateFilterVal()))){
+    if(!(is.null(countyFilterVal())) | !(is.null(stateFilterVal()))){
       stateFilterVal(NULL)
       countyFilterVal(NULL)
       if (length(input$programSelection) != 0){
@@ -558,7 +485,9 @@ server <- function(input, output, session) {
   
   # Initialize leaflet
   output$map <- renderLeaflet({
-    mapData <- filter_facility_latlong_data(unitData)
+    arpShapeFileData <- stateSf[stateSf$stateName %in% unique(unitData$stateName[grepl(paste0('\\','ARP','\\b'), unitData$programCodeInfo)]),]
+    matsShapeFileData <- stateSf[stateSf$stateName %in% unique(unitData$stateName[grepl(paste0('\\','MATS','\\b'), unitData$programCodeInfo)]),]
+    
     legendText <- tagList(div(class="display-table font-sans-xs line-height-sans-2 maxw-mobile padding-x-1",
                               div(class="display-table-row padding-bottom-1",
                                   div(class="display-table-cell padding-right-1 text-middle text-center",
@@ -578,24 +507,115 @@ server <- function(input, output, session) {
                                   )
     leaflet() %>%
       addTiles() %>% 
-      fitBounds(lng1 = min(na.omit(mapData$longitude))-1.5, 
-                lat1 = min(na.omit(mapData$latitude))-1.5,
-                lng2 = max(na.omit(mapData$longitude))+1.5,
-                lat2 = max(na.omit(mapData$latitude))+1.5) %>%
+      addPolygons(data = arpShapeFileData,
+                  layerId = ~paste0('ARP-',arpShapeFileData[['stateName']]), 
+                  group = 'ARP',
+                  color = 'green',
+                  fillColor = 'green',
+                  opacity = 1.0) %>%
+      hideGroup('ARP') %>%
+      addPolygons(data = matsShapeFileData,
+                  layerId = ~paste0('MATS-',matsShapeFileData[['stateName']]), 
+                  group = 'MATS',
+                  color = 'green',
+                  fillColor = 'green',
+                  opacity = 1.0) %>%
+      hideGroup('MATS') %>%
+      fitBounds(lng1 = -158.1283, 
+                lat1 = 17.9477,
+                lng2 = -66.1037,
+                lat2 = 63.8542) %>%
       addControl(legendText, position = "bottomleft" )
   })
   
   # min Longitude , min Latitude , max Longitude , max Latitude 
   # "boundingbox":[-158.1283,17.9477,-66.1037,63.8542]
   # Update map and include shape file outline that was selected in the search
-  update_map_search <- function(markerData,shapeFileData,searchRow,layer,group){
+  update_map_search <- function(shapeFileData,searchRow,layer){
     bbox <- st_bbox(shapeFileData[searchRow,]) %>% 
       as.vector()
-    leafletProxy("map",data=shapeFileData) %>% 
-      clearMarkerClusters() %>%
-      clearMarkers() %>%
-      clearShapes() %>% 
-      addTiles() %>% 
+    leafletProxy("map",data=searchRow) %>% 
+      hideGroup('ARP') %>%
+      hideGroup('MATS') %>%
+      removeShape(unique(stateSf$stateName)) %>% 
+      removeShape(unique(countyStateSf$countyns)) %>% 
+      addPolygons(layerId = ~searchRow[[layer]], 
+                  color = 'green',
+                  fillColor = 'green',
+                  opacity = 1.0) %>% 
+      fitBounds(bbox[1], bbox[2], bbox[3], bbox[4])
+  }
+  
+  # Update map with filter selections - states outlined
+  update_map_filter_selections <- function(markerData,shapeFileData){
+    map <- leafletProxy("map",data=shapeFileData) %>% 
+      clearMarkerClusters() %>% clearPopups() %>% clearMarkers() %>% 
+      removeShape(unique(stateSf$stateName)) %>% 
+      removeShape(unique(countyStateSf$countyns)) %>% 
+      addMarkers(data = markerData,
+                 lng = ~longitude, lat = ~latitude, 
+                 options = markerOptions(alt=~htmlEscape(facilityName), 
+                                         `aria-label`="facility marker", 
+                                         lat=~latitude,
+                                         lng=~longitude), 
+                 layerId = ~facilityId,
+                 label = ~facilityName,
+                 clusterOptions = markerClusterOptions(
+                   iconCreateFunction = JS("function (cluster) {    
+        var markers = cluster.getAllChildMarkers();
+        var latList = []; 
+        var lngList = []; 
+        for (i = 0; i < markers.length; i++) {
+          var markerlats = [markers[i].options.lat];
+          var markerlngs = [markers[i].options.lng];
+          var latList = latList.concat(markerlats);
+          var lngList = lngList.concat(markerlngs);
+        }
+        var minLat = Math.min(...latList);
+        var maxLat = Math.max(...latList);
+        var minLng = Math.min(...lngList);
+        var maxLng = Math.max(...lngList);
+        return new L.DivIcon({ 
+          html: `<div role='img' aria-label='facility cluster marker'>` + cluster.getChildCount() + `<span>&nbsp facilites with bounding box: [`+minLng+`,`+minLat+`,`+maxLng+`,`+maxLat+`]</span></div>`,
+         className: 'marker-cluster'
+        });
+      }"),
+                   showCoverageOnHover=FALSE,
+                   removeOutsideVisibleBounds=TRUE))
+    if(currentPrograms$programCode[currentPrograms$programShorthandDescription == input$programSelection] == 'ARP'){
+      map %>%
+        showGroup('ARP')
+    }
+    else if(currentPrograms$programCode[currentPrograms$programShorthandDescription == input$programSelection] == 'MATS'){
+      map %>%
+        showGroup('MATS')
+    }
+    else {
+      map %>% 
+        hideGroup('ARP') %>%
+        hideGroup('MATS') %>%
+        addPolygons(data = shapeFileData,
+                    layerId = ~shapeFileData[['stateName']], 
+                    color = 'green',
+                    fillColor = 'green',
+                    opacity = 1.0) 
+    }
+    map %>% 
+      #setView(lng = -93.85, lat = 37, zoom = 4)
+      fitBounds(lng1 = min(na.omit(markerData$longitude))-1.5, 
+                lat1 = min(na.omit(markerData$latitude))-1.5,
+                lng2 = max(na.omit(markerData$longitude))+1.5,
+                lat2 = max(na.omit(markerData$latitude))+1.5)
+  }
+  
+  # Update map with cleared filter selections
+  update_full_map <- function(markerData){
+    leafletProxy("map",data=markerData) %>% 
+      clearMarkerClusters() %>% clearPopups() %>% clearMarkers() %>% 
+      removeShape(unique(stateSf$stateName)) %>% 
+      removeShape(unique(countyStateSf$countyns)) %>% 
+      hideGroup('ARP') %>%
+      hideGroup('MATS') %>%
       addMarkers(data = markerData,
                  lng = ~longitude, lat = ~latitude, 
                  options = markerOptions(alt=~htmlEscape(facilityName), 
@@ -626,99 +646,6 @@ server <- function(input, output, session) {
       }"),
                    showCoverageOnHover=FALSE,
                    removeOutsideVisibleBounds=TRUE))%>%
-      
-      addPolygons(data = searchRow,
-                  layerId = ~searchRow[[layer]], 
-                  group = group,
-                  color = 'green',
-                  fillColor = 'green') %>% 
-      fitBounds(bbox[1], bbox[2], bbox[3], bbox[4])
-  }
-  
-  # Update map with filter selections - states outlined
-  update_map_filter_selections <- function(markerData,shapeFileData){
-    leafletProxy("map",data=shapeFileData) %>% 
-      clearMarkerClusters() %>% clearPopups() %>%
-      clearMarkers() %>% 
-      clearShapes() %>% 
-      addTiles() %>% addMarkers(data = markerData,
-                                lng = ~longitude, lat = ~latitude, 
-                                options = markerOptions(alt=~htmlEscape(facilityName), 
-                                                        `aria-label`="facility marker", 
-                                                        lat=~latitude,
-                                                        lng=~longitude), 
-                                layerId = ~facilityId,
-                                label = ~facilityName,
-                                clusterOptions = markerClusterOptions(
-                                  iconCreateFunction = JS("function (cluster) {    
-        var markers = cluster.getAllChildMarkers();
-        var latList = []; 
-        var lngList = []; 
-        for (i = 0; i < markers.length; i++) {
-          var markerlats = [markers[i].options.lat];
-          var markerlngs = [markers[i].options.lng];
-          var latList = latList.concat(markerlats);
-          var lngList = lngList.concat(markerlngs);
-        }
-        var minLat = Math.min(...latList);
-        var maxLat = Math.max(...latList);
-        var minLng = Math.min(...lngList);
-        var maxLng = Math.max(...lngList);
-        return new L.DivIcon({ 
-          html: `<div role='img' aria-label='facility cluster marker'>` + cluster.getChildCount() + `<span>&nbsp facilites with bounding box: [`+minLng+`,`+minLat+`,`+maxLng+`,`+maxLat+`]</span></div>`,
-         className: 'marker-cluster'
-        });
-      }"),
-                                  showCoverageOnHover=FALSE,
-                                  removeOutsideVisibleBounds=TRUE))%>%
-      addPolygons(data = shapeFileData,
-                  layerId = ~shapeFileData[['stateName']], 
-                  group = 'stateOutline',
-                  color = 'green',
-                  fillColor = 'green') %>% 
-      #setView(lng = -93.85, lat = 37, zoom = 4)
-      fitBounds(lng1 = min(na.omit(markerData$longitude))-1.5, 
-                lat1 = min(na.omit(markerData$latitude))-1.5,
-                lng2 = max(na.omit(markerData$longitude))+1.5,
-                lat2 = max(na.omit(markerData$latitude))+1.5)
-  }
-  
-  # Update map with cleared filter selections
-  update_full_map <- function(markerData){
-    leafletProxy("map",data=markerData) %>% 
-      clearMarkerClusters() %>% clearPopups() %>%
-      clearMarkers() %>% 
-      clearShapes() %>% 
-      addTiles() %>% addMarkers(data = markerData,
-                                lng = ~longitude, lat = ~latitude, 
-                                options = markerOptions(alt=~htmlEscape(facilityName), 
-                                                        `aria-label`="facility marker", 
-                                                        lat=~latitude,
-                                                        lng=~longitude), 
-                                layerId = ~facilityId,
-                                label = ~facilityName,
-                                clusterOptions = markerClusterOptions(
-                                  iconCreateFunction = JS("function (cluster) {    
-        var markers = cluster.getAllChildMarkers();
-        var latList = []; 
-        var lngList = []; 
-        for (i = 0; i < markers.length; i++) {
-          var markerlats = [markers[i].options.lat];
-          var markerlngs = [markers[i].options.lng];
-          var latList = latList.concat(markerlats);
-          var lngList = lngList.concat(markerlngs);
-        }
-        var minLat = Math.min(...latList);
-        var maxLat = Math.max(...latList);
-        var minLng = Math.min(...lngList);
-        var maxLng = Math.max(...lngList);
-        return new L.DivIcon({ 
-          html: `<div role='img' aria-label='facility cluster marker'>` + cluster.getChildCount() + `<span>&nbsp facilites with bounding box: [`+minLng+`,`+minLat+`,`+maxLng+`,`+maxLat+`]</span></div>`,
-         className: 'marker-cluster'
-        });
-      }"),
-                                  showCoverageOnHover=FALSE,
-                                  removeOutsideVisibleBounds=TRUE))%>%
       #setView(lng = -93.85, lat = 37, zoom = 4)
       fitBounds(lng1 = min(na.omit(markerData$longitude))-1.5, 
                 lat1 = min(na.omit(markerData$latitude))-1.5,
@@ -728,9 +655,8 @@ server <- function(input, output, session) {
   
   update_map_with_shape_maintained <- function(markerData){
     leafletProxy("map",data=markerData) %>% 
-      clearMarkerClusters() %>% clearPopups() %>%
-      clearMarkers() %>% 
-      addTiles() %>% addMarkers(data = markerData,
+      clearMarkerClusters() %>% clearPopups() %>% clearMarkers() %>% 
+      addMarkers(data = markerData,
                                 lng = ~longitude, lat = ~latitude, 
                                 options = markerOptions(alt=~htmlEscape(facilityName), 
                                                         `aria-label`="facility marker", 
@@ -854,19 +780,19 @@ server <- function(input, output, session) {
     }
     
     else {
-      if("Yes" %in% unitData$so2ControlsInstalled){
+      if("Yes" %in% selectedUnitFac$so2ControlsInstalled){
         so2Controls <- "Yes"
       }
       else{so2Controls <- "No"}
-      if("Yes" %in% unitData$noxControlsInstalled){
+      if("Yes" %in% selectedUnitFac$noxControlsInstalled){
         noxControls <- "Yes"
       }
       else{noxControls <- "No"}
-      if("Yes" %in% unitData$particulateMatterControlsInstalled){
+      if("Yes" %in% selectedUnitFac$particulateMatterControlsInstalled){
         pmControls <- "Yes"
       }
       else{pmControls <- "No"}
-      if("Yes" %in% unitData$mercuryControlsInstalled){
+      if("Yes" %in% selectedUnitFac$mercuryControlsInstalled){
         hgControls <- "Yes"
       }
       else{hgControls <- "No"}
@@ -971,8 +897,9 @@ server <- function(input, output, session) {
   }
   
 }
+if (!interactive()) sink(stderr(), type = "output")
 
-#shiny::runApp(shinyApp(ui,server))
+shiny::runApp(shinyApp(ui,server))
 # switch to below while deploying
-shiny::runApp(shinyApp(ui,server), host="0.0.0.0", port=strtoi(Sys.getenv("PORT")))
+#shiny::runApp(shinyApp(ui,server), host="0.0.0.0", port=strtoi(Sys.getenv("PORT")))
 
