@@ -1,4 +1,9 @@
 
+/* Keep uswds styles in body */
+body {
+  font-size: inherit;
+  line-height: inherit;
+}
 
 /* RShiny Hack to disable container fluid */
 
