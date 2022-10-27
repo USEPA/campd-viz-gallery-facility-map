@@ -18,3 +18,4 @@ packages:
     - name: lubridate
     - name: data.table
     - name: curl
+    - name: reactR
