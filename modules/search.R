@@ -82,23 +82,20 @@ searchServer <- function(input,output,session,df,
       rowid_to_column("idx") %>%
       filter(idx %in% input$search)
     dfReactive(dfReact)
-  },ignoreInit = TRUE)
+  },ignoreNULL = TRUE)
   
   observeEvent(clearEvent(),{
-    if(!is.null(dfReactive())){
-      if(input$search != ""){
-        updateSelectizeInput(
-          session = session,
-          inputId = 'search',
-          choices = cbind(df, value = seq_len(nrow(df))),
-          selected=character(0),
-          server = TRUE)
-        dfReact <- df %>%
-          rowid_to_column("idx") %>%
-          filter(idx %in% input$search)
-        dfReactive(dfReact)
-      }
+    if(input$search != "" | !is.null(filterVal())){
+      updateSelectizeInput(
+        session = session,
+        inputId = 'search',
+        choices = cbind(df, value = seq_len(nrow(df))),
+        selected=character(0),
+        server = TRUE)
+      dfReact <- data.frame()
+      dfReactive(dfReact)
     }
+    #}
   },ignoreNULL = TRUE)
   
   observeEvent(c(input$search),{
