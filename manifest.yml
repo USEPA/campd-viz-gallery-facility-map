@@ -4,4 +4,4 @@ applications:
   disk_quota: 2G
   memory: 1.5G
   routes:
-  - route: facility-map-tst.apps.internal
+  - route: facility-map-dev.apps.internal
