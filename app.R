@@ -282,6 +282,7 @@ server <- function(input, output, session) {
   # Get all current programs
   allPrograms <- read.csv(paste0(dataGitRawBase,"programTable.csv"))
   currentPrograms <- allPrograms[(allPrograms$retiredIndicator==FALSE),]
+  filterByPrograms <- currentPrograms %>% filter(!(programCode %in% c('NHNOX','NSPS4T','SIPNOX')))
   
   # Get all allowance programs 
   allCompliancePrograms <- allPrograms[allPrograms$allowanceUIFilter == TRUE,]
@@ -307,7 +308,7 @@ server <- function(input, output, session) {
   complianceData <- read.csv(file = paste0(dataGitRawBase,"complianceDataTableForDownload.csv"))
   
   updateSelectizeInput(session, "programSelection",
-                       choices=c("Select All",unique(na.omit(currentPrograms$programShorthandDescription))))
+                       choices=c("Select All",unique(na.omit(filterByPrograms$programShorthandDescription))))
   
   output$gettingStartedText <- renderUI({ 
     div(
@@ -765,38 +766,32 @@ server <- function(input, output, session) {
       paste0("<strong>",unit,"</strong>",": ",selectedUnitFac$operatingStatus[selectedUnitFac$unitId == unit])
     }),collapse = "<br/>")
     
-    subjectedPrograms <- unlist(lapply(unique(str_split(unique(selectedUnitFac$programCodeInfo),", ")),function(cell){
-      unlist(str_split(cell,","))
-    }))
     
-    if ((length(intersect(subjectedPrograms, currentCompliancePrograms$programCode)) == 0) &&
-        (is.na(unique(selectedUnitFac$primaryFuelInfo)))){
-      fuelTypesStg <- "Not reported"
-      so2Controls <- "Not reported"
-      noxControls <- "Not reported"
-      pmControls <- "Not reported"
-      hgControls <- "Not reported"
-
+    if (length(setdiff(selectedUnitFac$primaryFuelInfo,c("Not reported"))) > 0){
+      fuelTypesStg <- paste(unlist(unique(selectedUnitFac$primaryFuelInfo)),collapse = ", ")
     }
+    else{fuelTypesStg <- "Not reported"}
     
-    else {
-      if("Yes" %in% selectedUnitFac$so2ControlsInstalled){
-        so2Controls <- "Yes"
-      }
+    if (length(intersect(selectedUnitFac$so2ControlsInstalled, c("Yes","No")))){
+      if ("Yes" %in% selectedUnitFac$so2ControlsInstalled){so2Controls <- "Yes"}
       else{so2Controls <- "No"}
-      if("Yes" %in% selectedUnitFac$noxControlsInstalled){
-        noxControls <- "Yes"
-      }
+    }
+    else{so2Controls <- selectedUnitFac$so2ControlsInstalled[1]}
+    if (length(intersect(selectedUnitFac$noxControlsInstalled, c("Yes","No")))){
+      if ("Yes" %in% selectedUnitFac$noxControlsInstalled){noxControls <- "Yes"}
       else{noxControls <- "No"}
-      if("Yes" %in% selectedUnitFac$particulateMatterControlsInstalled){
-        pmControls <- "Yes"
-      }
+    }
+    else{noxControls <- selectedUnitFac$noxControlsInstalled[1]}
+    if (length(intersect(selectedUnitFac$particulateMatterControlsInstalled, c("Yes","No")))){
+      if ("Yes" %in% selectedUnitFac$particulateMatterControlsInstalled){pmControls <- "Yes"}
       else{pmControls <- "No"}
-      if("Yes" %in% selectedUnitFac$mercuryControlsInstalled){
-        hgControls <- "Yes"
-      }
+    }
+    else{pmControls <- selectedUnitFac$particulateMatterControlsInstalled[1]}
+    if (length(intersect(selectedUnitFac$mercuryControlsInstalled, c("Yes","No")))){
+      if ("Yes" %in% selectedUnitFac$mercuryControlsInstalled){hgControls <- "Yes"}
       else{hgControls <- "No"}
     }
+    else{hgControls <- selectedUnitFac$mercuryControlsInstalled[1]}
     
     content <- 
       tagList(
@@ -832,7 +827,7 @@ server <- function(input, output, session) {
       accountNumber <- "No CAMD compliance account associated with this facility."
     }
     
-    if(nrow(selectedFac)==0){
+    if((nrow(selectedFac)==1) & is.na(selectedFac$accountNumber[1]) & is.na(selectedFac$programCode[1])){
       subjectedPrograms <- tagList(sprintf(" %s", "This facility has no historical compliance record for CAMD's emissions trading programs."),
                                    tags$br())
       complianceDisplayTable <- ""
