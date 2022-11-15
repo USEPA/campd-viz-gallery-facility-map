@@ -1,5 +1,3 @@
-# GitHub raw base 
-dataGitRawBase <- "https://raw.githubusercontent.com/USEPA/campdRShinyDataSource/main/data/facility-map/"
 
 # table to convert column name to appropriate lables for UI
 facilityMapLabelConversion <- data.frame(columnName=c("programCode", 
