@@ -1,21 +1,4 @@
 
-# table to convert column name to appropriate lables for UI
-facilityMapLabelConversion <- data.frame(columnName=c("programCode", 
-                                                      "programDescription",
-                                                      "facilityName", 
-                                                      "stateName", 
-                                                      "countyName"), 
-                                         label=c("Select a Regulatory Program",
-                                                 "Select a Regulatory Program",
-                                                 "Select a Facility",
-                                                 "Select a State",
-                                                 "Select a County"),
-                                         placeholder=c("--select program--",
-                                                       "--select program--",
-                                                       "--select facility--",
-                                                       "--select state--",
-                                                       "--select county--"))
-
 # drop these states in shapefiles
 dropStates <- c("American Samoa", "American Samoa", 
                 "Commonwealth of the Northern Mariana Islands",
