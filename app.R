@@ -59,7 +59,7 @@ source("./modules/search.R")
 source("./modules/display-table.R")
 source("./modules/display-list.R")
 
-# enabling js function after modal popup (download interuption)
+# enabling js function after modal popup (download interruption)
 enableElementsJs <- "shinyjs.enableElements = function() {
     const keyboardfocusableElements = document.querySelectorAll(
       'a, button, input, select'
