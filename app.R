@@ -59,6 +59,44 @@ source("./modules/search.R")
 source("./modules/display-table.R")
 source("./modules/display-list.R")
 
+# enabling js function after modal popup (download interruption)
+enableElementsJs <- "shinyjs.enableElements = function() {
+    const keyboardfocusableElements = document.querySelectorAll(
+      'a, button, input, select'
+    );
+    
+    if ($('#map').length) {
+      const map = document.getElementById('map');
+      map.setAttribute('tabindex', 0);
+      const mapElements = document.getElementById('map').getElementsByClassName('leaflet-marker-pane')[0];
+      if (typeof mapElements !== 'undefined') {
+        const mapfocusableElements = mapElements.querySelectorAll(
+          'div, img'
+        );
+        for (let i=0; i < mapfocusableElements.length; i++){
+          mapfocusableElements[i].setAttribute('tabindex', 0);
+        }
+      }
+    }
+    
+    for (let i=0; i < keyboardfocusableElements.length; i++){
+      
+      if(keyboardfocusableElements[i].tagName == 'A') {
+        keyboardfocusableElements[i].removeAttribute('tabindex');
+      }
+      else {
+        keyboardfocusableElements[i].disabled = false;
+      }
+    }
+  }
+  shinyjs.focusOnFacilityDownload = function() {
+    document.getElementById('init_facility_data').focus();
+  }
+  shinyjs.focusOnComplianceDownload = function() {
+    document.getElementById('init_compliance_data').focus();
+  }
+"
+
 ui <- tags$main(
   
   # load in shiny dashboard - use this first so epaSlimHeader can override some styling
