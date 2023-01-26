@@ -43,7 +43,7 @@ library(lubridate)
 library(data.table)
 library(curl)
 
-install.packages(paste0(getwd(),'/tmp/epaRShinyTemplate_0.0.1.tar.gz'), repos=NULL)
+install.packages(paste0(getwd(),'/tmp/epaRShinyTemplate_0.0.2.tar.gz'), repos=NULL)
 
 library(epaRShinyTemplate)
 
@@ -118,8 +118,6 @@ ui <- tags$main(
     tags$head(
       useShinyjs(),
       includeScript('www/script.js'),
-      extendShinyjs(text = enableElementsJs, functions = c("enableElements","focusOnFacilityDownload",
-                                                           "focusOnComplianceDownload")),
       HTML("<title>Facility Map</title>")
     ),
     
@@ -165,7 +163,8 @@ ui <- tags$main(
         ),
         div(id="source-data-box", box(
           div(
-            p("Use the download buttons below to save the data available in the map."),
+            p("Use the download buttons below to obtain ",tags$strong("all data available in the map.")),
+            p("NOTE: The CSV tables are not produced based on your Location Search or Facility Filters selections."),
             div(class="grid-container download-buttons",
                 div(class="grid-row",
                     div(class="grid-col-auto",
@@ -230,7 +229,7 @@ ui <- tags$main(
                                       options = list(container = "body")
                             ),
                             fluidRow(column(10,selectizeInput("programSelection", 
-                                                              label=facilityMapLabelConversion$label[facilityMapLabelConversion$columnName == "programCode"],
+                                                              label="Select a Regulatory Program",
                                                               choices=c("Select All"),
                                                               selected=c("Select All"),
                                                               multiple = FALSE))),
@@ -279,6 +278,14 @@ ui <- tags$main(
 
 server <- function(input, output, session) {
   
+  # GitHub raw base 
+  dataGitRawBase <- "https://raw.githubusercontent.com/USEPA/campdRShinyDataSource/main/data/facility-map/"
+  getDataGitRaw <- "https://github.com/USEPA/campdRShinyDataSource/raw/main/data/facility-map/"
+  if (Sys.getenv(c("USE_BACKUP_GIT")) == 'true'){
+    dataGitRawBase <- "https://raw.githubusercontent.com/USEPA/campdRShinyDataSource/backup/data/facility-map/"
+    getDataGitRaw <- "https://github.com/USEPA/campdRShinyDataSource/raw/backup/data/facility-map/"
+  }
+  
   # Get all current programs
   allPrograms <- read.csv(paste0(dataGitRawBase,"programTable.csv"))
   currentPrograms <- allPrograms[(allPrograms$retiredIndicator==FALSE),]
@@ -319,7 +326,7 @@ server <- function(input, output, session) {
           programs such as Regional Greenhouse Gas Initiative). More resources on these programs 
           can be found at ",
           tags$a(class="usa-link",href="https://www.epa.gov/airmarkets/programs", 
-                 "EPA's Clean Air Markets Programs web area",
+                 "EPA's Clean Air Markets Programs website",
                  target="_blank", .noWS = "outside"),
           ".", .noWS = c("after-begin", "before-end")),
       
@@ -374,14 +381,14 @@ server <- function(input, output, session) {
   output$download_facility_data <- downloadHandler(
     filename =  function() { paste0("facility-data-",as.character(latestComplianceYear),".csv") },
     content = function(file) {
-      GET("https://github.com/USEPA/campdRShinyDataSource/raw/main/data/facility-map/facilityDataTableForDownload.csv", write_disk(file))
+      GET(paste0(getDataGitRaw,"facilityDataTableForDownload.csv"), write_disk(file))
     }
   )
   
   output$download_compliance_data <- downloadHandler(
     filename =  function() { paste0("compliance-data.csv") },
     content = function(file) {
-      GET("https://github.com/USEPA/campdRShinyDataSource/raw/main/data/facility-map/complianceDataTableForDownload.csv", write_disk(file))
+      GET(paste0(getDataGitRaw,"complianceDataTableForDownload.csv"), write_disk(file))
     }
   )
   
@@ -585,10 +592,12 @@ server <- function(input, output, session) {
                    removeOutsideVisibleBounds=TRUE))
     if(currentPrograms$programCode[currentPrograms$programShorthandDescription == input$programSelection] == 'ARP'){
       map %>%
+        hideGroup('MATS') %>%
         showGroup('ARP')
     }
     else if(currentPrograms$programCode[currentPrograms$programShorthandDescription == input$programSelection] == 'MATS'){
       map %>%
+        hideGroup('ARP') %>%
         showGroup('MATS')
     }
     else {
@@ -808,7 +817,7 @@ server <- function(input, output, session) {
         div(style="margin-top:5px;","For more information on pollutants, please visit:"),
         tags$a(class="usa-link",href="https://www.epa.gov/criteria-air-pollutants", 
                "https://www.epa.gov/criteria-air-pollutants",
-               target="_blank"),
+               target="_blank"), tags$br(),
         tags$a(class="usa-link",href="https://www.epa.gov/mercury", 
                "https://www.epa.gov/mercury",
                target="_blank"),
@@ -866,8 +875,8 @@ server <- function(input, output, session) {
       }
       else{
         
-        compYearsOutOfComp <- previousComplianceFacilityData[,c("programShorthandDescription","inCompliance.")]
-        names(compYearsOutOfComp) <- c("Program","In Compliance?")
+        compYearsOutOfComp <- previousComplianceFacilityData[,c("programShorthandDescription","year","inCompliance.")]
+        names(compYearsOutOfComp) <- c("Program","Year","In Compliance?")
         
         outOfComplianceTable <- tagList(
           tags$h5(class="font-sans-md text-bold",tags$u("Non-Compliant Years:")),
