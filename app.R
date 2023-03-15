@@ -61,6 +61,12 @@ source("./modules/display-list.R")
 
 ui <- tags$main(
   
+  HTML(paste0('<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=',
+Sys.getenv(c("REACT_APP_GOOGLE_ANALYTICS_CONTAINER_ID")),'"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->')),
+  
   # load in shiny dashboard - use this first so epaSlimHeader can override some styling
   useShinydashboard(),
   
@@ -78,6 +84,13 @@ ui <- tags$main(
     
     # adding html js and style essentials
     tags$head(
+      HTML(paste0("<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','",Sys.getenv(c("REACT_APP_GOOGLE_ANALYTICS_CONTAINER_ID")),"');</script>
+<!-- End Google Tag Manager -->")),
       useShinyjs(),
       includeScript('www/script.js'),
       HTML("<title>Facility Map</title>")
