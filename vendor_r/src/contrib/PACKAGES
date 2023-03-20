@@ -1298,7 +1298,7 @@ MD5sum: d40213fc7166445ebd6057a539a04b2e
 NeedsCompilation: no
 
 Package: htmltools
-Version: 0.5.3
+Version: 0.5.4
 Depends: R (>= 2.14.1)
 Imports: utils, digest, grDevices, base64enc, rlang (>= 0.4.10),
         fastmap (>= 1.1.0)
