@@ -6,6 +6,6 @@ applications:
   routes:
   - route: facility-map.app.cloud.gov
   env: 
-    APP_VERSION: 'v1.0.0'
+    APP_VERSION: 'v1.0.1'
     SHINY_LOG_STDERR: 1
     USE_BACKUP_GIT: 'false'
