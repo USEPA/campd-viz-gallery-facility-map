@@ -2,7 +2,7 @@
 
 # clear quotes below while deploying
 
-library_path <- paste("Library Path: ", Sys.getenv(c("LD_LIBRARY_PATH")))
+'library_path <- paste("Library Path: ", Sys.getenv(c("LD_LIBRARY_PATH")))
 print(paste("LD_LIBRARY_PATH: ", library_path))
 
 lib_dir <- "/home/vcap/deps/0/r/lib"
@@ -23,7 +23,7 @@ if(dir.exists(lib_dir))
   Sys.setenv(PROJ_LIB=lib_dir)
 }
 
-print(list.files(lib_dir))
+print(list.files(lib_dir))'
 
 library(shiny)
 library(shinydashboard)
@@ -48,7 +48,7 @@ install.packages(paste0(getwd(),'/tmp/epaRShinyTemplate_0.0.2.tar.gz'), repos=NU
 library(epaRShinyTemplate)
 
 # get application environment variables
-APPLICATION_ENV_VARIABLES <- fromJSON(Sys.getenv(c("VCAP_APPLICATION")))
+#APPLICATION_ENV_VARIABLES <- fromJSON(Sys.getenv(c("VCAP_APPLICATION")))
 
 # src scripts
 source("./src/static.R")
@@ -71,8 +71,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   useShinydashboard(),
   
   # easey design template
-  epaSlimHeader("epaNav",APPLICATION_ENV_VARIABLES$space_name),
-  #epaSlimHeader("epaNav","local"),
+  #epaSlimHeader("epaNav",APPLICATION_ENV_VARIABLES$space_name),
+  epaSlimHeader("epaNav","local"),
   
   # dark blue banner
   div(class="banner",
@@ -241,8 +241,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     
     div(class="position-relative",
         div(class="position-fixed .pin-bottom.pin-x z-top",
-            epaSlimFooter("epaFoot", appVersion = Sys.getenv(c("APP_VERSION")), appPublished = format(Sys.Date(),"%a %b %d %Y"))
-            #epaSlimFooter("epaFoot", appVersion = "v1.0.0", appPublished = format(Sys.Date(),"%a %b %d %Y"))
+            #epaSlimFooter("epaFoot", appVersion = Sys.getenv(c("APP_VERSION")), appPublished = format(Sys.Date(),"%a %b %d %Y"))
+            epaSlimFooter("epaFoot", appVersion = "v1.0.0", appPublished = format(Sys.Date(),"%a %b %d %Y"))
         )
     )
     
@@ -878,7 +878,7 @@ server <- function(input, output, session) {
 }
 if (!interactive()) sink(stderr(), type = "output")
 
-#shiny::runApp(shinyApp(ui,server))
+shiny::runApp(shinyApp(ui,server))
 # switch to below while deploying
-shiny::runApp(shinyApp(ui,server), host="0.0.0.0", port=strtoi(Sys.getenv("PORT")))
+#shiny::runApp(shinyApp(ui,server), host="0.0.0.0", port=strtoi(Sys.getenv("PORT")))
 
