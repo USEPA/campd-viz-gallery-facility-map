@@ -53,10 +53,6 @@ library(data.table)
 library(curl)
 library(epaRShinyTemplate)
 
-#install.packages(paste0(getwd(),'/tmp/epaRShinyTemplate_0.0.4.tar.gz'), repos=NULL)
-
-library(epaRShinyTemplate)
-
 # get application environment variables
 #APPLICATION_ENV_VARIABLES <- fromJSON(Sys.getenv(c("VCAP_APPLICATION")))
 
