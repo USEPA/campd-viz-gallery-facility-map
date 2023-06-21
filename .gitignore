@@ -3,4 +3,4 @@
 .RData
 .Ruserdata
 .env
-vendor_r/src/contrib/**
+vendor_r/src/contrib/*
