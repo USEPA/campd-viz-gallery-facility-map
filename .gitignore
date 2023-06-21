@@ -3,4 +3,4 @@
 .RData
 .Ruserdata
 .env
-vendor_r/src/contrib/**.tar.gz
+vendor_r/src/contrib/*
