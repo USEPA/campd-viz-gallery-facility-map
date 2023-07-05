@@ -1,5 +1,5 @@
 # Clean Air Market Program Data (CAMPD) Viz Gallery Facility Map
-An R Shiny App found at (url). This app uses lealfet to display a map of facilities that exist in the Clean Air Market Division (CAMD) database. It also provides users based data on the facility attributes and compliance performance.
+This repo is for CAMPD's R Shiny App [facility map](https://campd.epa.gov/tools/facility-map/). The app uses lealfet to display a map of facilities that exist in the Clean Air Power Sector Programs database. It also provides users based data on the facility attributes and compliance performance.
 
 ## Getting started
 
@@ -9,37 +9,47 @@ After cloning the repo, run
 shiny::runApp()
 ```
 
-### Deploying to the cloud
+## Deploying to the cloud
 
 ### 1) Vendor r packages
-The r packages that are installed for this app are found at [cflinuxfs3 CRAN](https://github.com/USEPA/cflinuxfs3-CRAN). Clone this repo and copy everything from [/src/contrib](https://github.com/USEPA/cflinuxfs3-CRAN/tree/master/cflinuxfs3/src/contrib) into /vendor_r/src/contrib in this directory.
+The r packages that are installed for this app are found at [r-shiny-cloud-gov-instructions](https://github.com/USEPA/r-shiny-cloud-gov-instructions). Clone this repo and copy everything from /src/contrib into this apps /vendor_r/src/contrib directory.
 
 ### 2) Prep for pushing to the cloud
 
-- Add an enviroment variable for the application named APP_VERSION. This is what will show up in the bottom bar of the page.
+- Update the enviroment variable for the application named APP_VERSION. This is what will show up in the bottom bar of the page.
 - Uncomment/switch out these lines in their respective locations
 ``` r
 library_path <- paste("Library Path: ", Sys.getenv(c("LD_LIBRARY_PATH")))
 print(paste("LD_LIBRARY_PATH: ", library_path))
 
 lib_dir <- "/home/vcap/deps/0/r/lib"
-local_lib_dir <- "lib"
+local_lib_dir <- "r-lib"
+local_bin_dir <- "r-bin"
 
-if(dir.exists(lib_dir))
-{
-  # Get the list of libs
-  lib_tars <- list.files(local_lib_dir)
-  lib_tars <- paste(local_lib_dir, lib_tars, sep="/")
-  
-  print(paste("Local libs: ", lib_tars))
-  print(paste("Working directory: ", list.files(getwd())))
-  
-  # Copy the files to the lib_dir
-  for(i in 1:length(lib_tars)) {untar(lib_tars[i], exdir = lib_dir)}
-  
-  Sys.setenv(PROJ_LIB=lib_dir)
+if (dir.exists(lib_dir)) {
+  if (dir.exists(local_lib_dir)) {
+    # Get the list of libs
+    lib_tars <- list.files(local_lib_dir)
+    lib_tars <- paste(local_lib_dir, lib_tars, sep = "/")
+    
+    print(paste("Local libs: ", lib_tars))
+    print(paste("Working directory: ", list.files(getwd())))
+    
+    # Copy the files to the lib_dir
+    for (i in 1:length(lib_tars)) {
+      untar(lib_tars[i], exdir = lib_dir)
+    }
+    
+    Sys.setenv(PROJ_LIB = lib_dir)
+    
+  }
+  if (dir.exists(local_bin_dir)) {
+    Sys.setenv(RMARKDOWN_PANDOC = local_bin_dir)
+    Sys.setenv(PATH = paste("/home/vcap/app/",
+                            local_bin_dir, ":${PATH}", sep = ""))
+  }
+  print(list.files(lib_dir))
 }
-print(list.files(lib_dir))
 ```
 ``` r
 # get application environment variables
@@ -67,7 +77,7 @@ Find Cloud Foundry's [doc page](https://docs.cloudfoundry.org/) for more info.
 ## Other information
 
 ### Data Source
-This map pulls data hosted on [CAMPD R Shiny Data Source](https://github.com/USEPA/campdRShinyDataSource) which is updated nightly using the [CAM APIs](https://www.epa.gov/airmarkets/cam-api-portal).
+This map pulls data hosted on [CAMPD R Shiny Data Source](https://github.com/USEPA/campdRShinyDataSource) which is updated nightly using the [CAM APIs](https://www.epa.gov/power-sector/cam-api-portal#/documentation).
 
 ### R Shiny One EPA Template
 This [EPA R Shiny Template](https://github.com/USEPA/epaRShinyTemplate) uses the react components from the [EASEY Design System](https://github.com/US-EPA-CAMD/easey-design-system).
