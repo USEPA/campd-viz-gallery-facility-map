@@ -306,8 +306,8 @@ server <- function(input, output, session) {
           data is not available for non-allowance programs such as Acid Rain Program NOx or state 
           programs such as Regional Greenhouse Gas Initiative). More resources on these programs 
           can be found at ",
-          tags$a(class="usa-link",href="https://www.epa.gov/airmarkets/programs", 
-                 "EPA's Clean Air Markets Programs website",
+          tags$a(class="usa-link",href="https://www.epa.gov/power-sector", 
+                 "EPA's Clean Air Power Sector Programs website",
                  target="_blank", .noWS = "outside"),
           ".", .noWS = c("after-begin", "before-end")),
       
@@ -352,7 +352,7 @@ server <- function(input, output, session) {
               tags$li(paste0('Facility Summary displays basic facility/unit attribute information 
               for the ',as.character(latestComplianceYear),' operating year.')),
               tags$li(paste0("Compliance Summary displays compliance information for 
-              CAMD's emissions trading programs applicable to the chosen facility for ",
+              EPA's emissions trading programs applicable to the chosen facility for ",
                              as.character(latestComplianceYear),' and 
               any previous years the facility was non-compliant.')),
       )
@@ -814,11 +814,11 @@ server <- function(input, output, session) {
     
     accountNumber <- as.character(selectedFac$accountNumber[1])
     if (is.na(selectedFac$accountNumber[1])){
-      accountNumber <- "No CAMD compliance account associated with this facility."
+      accountNumber <- "No EPA emissions trading compliance account associated with this facility."
     }
     
     if((nrow(selectedFac)==1) & is.na(selectedFac$accountNumber[1]) & is.na(selectedFac$programCode[1])){
-      subjectedPrograms <- tagList(sprintf(" %s", "This facility has no historical compliance record for CAMD's emissions trading programs."),
+      subjectedPrograms <- tagList(sprintf(" %s", "This facility has no historical compliance record for EPA's emissions trading programs."),
                                    tags$br())
       complianceDisplayTable <- ""
       outOfComplianceTable <- ""
@@ -830,7 +830,7 @@ server <- function(input, output, session) {
       subjectedPrograms <- allPrograms$programShorthandDescription[allPrograms$programCode %in% subjectedProgramsCodes]
       
       if (length(subjectedPrograms) == 0){
-        subjectedPrograms <-tagList(sprintf(" %s",  "CAMD's emissions trading programs are not currently applicable to this facility."),
+        subjectedPrograms <-tagList(sprintf(" %s",  "EPA's emissions trading programs are not currently applicable to this facility."),
                                     tags$br())
         complianceDisplayTable <- ""
       }
@@ -851,7 +851,7 @@ server <- function(input, output, session) {
       if(nrow(previousComplianceFacilityData) == 0){
         outOfComplianceTable <- tagList(
           tags$h5(class="font-sans-md text-bold",tags$u("Non-Compliant Years:")),
-          HTML("This facility has no record of non-compliance for applicable CAMD emissions trading programs.")
+          HTML("This facility has no record of non-compliance for applicable EPA emissions trading programs.")
         )
       }
       else{
@@ -862,7 +862,7 @@ server <- function(input, output, session) {
         outOfComplianceTable <- tagList(
           tags$h5(class="font-sans-md text-bold",tags$u("Non-Compliant Years:")),
           HTML(getTableHTML(compYearsOutOfComp)),
-          tags$p("This facility has no other record of non-compliance for applicable CAMD emissions trading programs.")
+          tags$p("This facility has no other record of non-compliance for applicable EPA emissions trading programs.")
         )
       }
     }
