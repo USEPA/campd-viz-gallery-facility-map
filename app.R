@@ -1,4 +1,3 @@
-# App
 
 # clear quotes below while deploying
 
@@ -6,8 +5,8 @@
 print(paste("LD_LIBRARY_PATH: ", library_path))
 
 lib_dir <- "/home/vcap/deps/0/r/lib"
-local_lib_dir <- "r-lib"
-local_bin_dir <- "r-bin"
+local_lib_dir <- "lib"
+local_bin_dir <- "bin"
 
 if (dir.exists(lib_dir)) {
   if (dir.exists(local_lib_dir)) {
@@ -35,22 +34,17 @@ if (dir.exists(lib_dir)) {
 }'
 
 library(shiny)
-library(shinydashboard)
-library(shinybusy)
 library(shinyjs)
-library(shinyBS)
-library(shinyWidgets)
 library(shinydisconnect)
+library(shinybusy)
+library(bslib)
+library(bsicons)
+library(tidyverse)
+library(htmltools)
+library(httr)
+library(jsonlite)
 library(sf)
 library(leaflet)
-library(leaflet.extras)
-library(httr)
-library(htmltools)
-library(jsonlite)
-library(tidyverse)
-library(lubridate)
-library(data.table)
-library(curl)
 library(epaRShinyTemplate)
 
 # get application environment variables
@@ -65,198 +59,174 @@ source("./modules/search.R")
 source("./modules/display-table.R")
 source("./modules/display-list.R")
 
-ui <- tags$main(
+ui <- page_fillable(
   
   HTML(paste0('<!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=',
-Sys.getenv(c("REACT_APP_GOOGLE_ANALYTICS_CONTAINER_ID")),'"
+              Sys.getenv(c("REACT_APP_GOOGLE_ANALYTICS_CONTAINER_ID")),'"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->')),
   
-  # load in shiny dashboard - use this first so epaSlimHeader can override some styling
-  useShinydashboard(),
-  
-  # easey design template
   #epaSlimHeader("epaNav",APPLICATION_ENV_VARIABLES$space_name),
   epaSlimHeader("epaNav","local"),
   
-  # dark blue banner
   div(class="banner",
       h1(class="banner-conents","Facility Map"),
   ),
   
-  # main page
-  div(
-    
-    # adding html js and style essentials
-    tags$head(
-      HTML(paste0("<!-- Google Tag Manager -->
+  tags$head(
+    HTML(paste0("<!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','",Sys.getenv(c("REACT_APP_GOOGLE_ANALYTICS_CONTAINER_ID")),"');</script>
 <!-- End Google Tag Manager -->")),
-      useShinyjs(),
-      includeScript('www/script.js'),
-      HTML("<title>Facility Map</title>")
-    ),
-    
-    tags$html(class="CAMPDRShiny",lang="en"),
-    class="main-page",
-    includeCSS("www/style.css"),
-    
-    # adding load spinner
-    add_busy_spinner(
-      spin = "fading-circle",
-      color = "#112446",
-      timeout = 100,
-      position = c("full-page"),
-      height = "50px",
-      width = "50px"
-    ),
-    # disconnect
-    disconnectMessage(
-      text = "Your session timed out! Please reload the application.",
-      refresh = "Reload now",
-      background = "white",
-      colour = "#000000",
-      overlayColour = "#f0f0f0",
-      overlayOpacity = 0.3,
-      refreshColour = "#1a4480"
-    ),
-    
-    ############ Main UI ############
-    
-    tags$div(class="padding-y-2 mobile-lg:padding-x-2 tablet:padding-x-4 widescreen:padding-x-10 font-sans-xs text-base-darkest text-ls-1 line-height-sans-5",
-        
-        h2(class="font-sans-xl text-bold","Getting Started"),
-        
-        uiOutput("gettingStartedText"),
-        
-        div(id = "how-to-use-map-box", box(
-          uiOutput('howToUseBox'), 
-          title = "How to use the map",  
-          collapsible = TRUE, 
-          collapsed = TRUE, 
-          status = "primary",
-          width = 12)
-        ),
-        div(id="source-data-box", box(
-          div(
-            p("Use the download buttons below to obtain ",tags$strong("all data available in the map.")),
-            p("NOTE: The CSV tables are not produced based on your Location Search or Facility Filters selections."),
-            div(class="grid-container download-buttons",
-                div(class="grid-row",
-                    div(class="grid-col-auto",
-                        downloadButton(class="usa-button","download_facility_data", "Download Facility Data CSV"),
-                        downloadButton(class="usa-button","download_compliance_data", "Download Compliance Data CSV")
-                    )
-                )
-                
-            )),
-          title = "Source Data",  
-          collapsible = TRUE, 
-          collapsed = TRUE, 
-          status = "primary",
-          width = 12)
-        ),
-        
-        fluidRow(id="filtersearch-container",
-                 column(8, 
-                        div(class='column-decorator', div(h3(class="font-sans-lg text-bold", 
-                                                             bsButton(class="usa-button","search-tooltip", label = "Search Tooltip", 
-                                                                      icon = icon("question"), style = "info", 
-                                                                      size = "extra-small"),'Location Search')),
-                            bsPopover(id = "search-tooltip", title = "Using the searches",
-                                      content = paste0("Use the search dropdown to highlight specific locations and zoom into the ", 
-                                                       "location to find nearby facilities."),
-                                      placement = "right", 
-                                      trigger = "focus", 
-                                      options = list(container = "body")
-                            ),
-                            fluidRow(
-                              column(5,
-                                     searchUI('stateSearchInput', 
-                                              placeholder='--search by state-- ', 
-                                              label=div('State Name'),
-                                              df=stateSf, 
-                                              group="", 
-                                              items='stateName')),
-                              column(5,
-                                     searchUI('countySearchInput', 
-                                              placeholder='--search by county-- ', 
-                                              label='County Name',
-                                              df=countyStateSf, 
-                                              group='stateName', 
-                                              items='countyName'))
-                            ),
-                            
-                            div(class="select-clear", actionButton(class="usa-button","clearSearch","Clear Search")),
-                            
-                        )
-                 ),
-                 column(4, 
-                        div(class="column-decorator", div(h3(class="font-sans-lg text-bold", 
-                                                             bsButton(class="usa-button", "filter-tooltip", label = "Filter Tooltip", 
-                                                                      icon = icon("question"), style = "info", 
-                                                                      size = "extra-small"),
-                                                             "Facility Filters")),
-                            bsPopover(id = "filter-tooltip", title = "Using the filter",
-                                      content = paste0("Use the program filter to refine your search of facilities within a regulatory ", 
-                                                       "program across the United States."),
-                                      placement = "right", 
-                                      trigger = "focus", 
-                                      options = list(container = "body")
-                            ),
-                            fluidRow(column(10,selectizeInput("programSelection", 
-                                                              label="Select a Regulatory Program",
-                                                              choices=c("Select All"),
-                                                              selected=c("Select All"),
-                                                              multiple = FALSE))),
-                            div(class="select-clear", actionButton(class="usa-button","clearFilters","Clear Filters"))
-                        )
-                        
+    useShinyjs(),
+    includeScript('www/script.js'),
+    HTML("<title>Facility Map</title>")
+  ),
+  
+  # adding load spinner
+  add_busy_spinner(
+    spin = "fading-circle",
+    color = "#112446",
+    timeout = 100,
+    position = c("full-page"),
+    height = "50px",
+    width = "50px"
+  ),
+  # disconnect
+  disconnectMessage(
+    text = "Your session timed out! Please reload the application.",
+    refresh = "Reload now",
+    background = "white",
+    colour = "#000000",
+    overlayColour = "#f0f0f0",
+    overlayOpacity = 0.3,
+    refreshColour = "#1a4480"
+  ),
+  
+  tags$html(class="CAMPDRShiny",lang="en"),
+  class="main-page",
+  includeCSS("www/style.css"),
+  
+  tags$div(class="padding-y-2 mobile-lg:padding-x-2 tablet:padding-x-4 widescreen:padding-x-10 font-sans-xs text-base-darkest text-ls-1 line-height-sans-5",
+           h2(class="font-sans-xl text-bold","Getting Started"),
+           uiOutput("gettingStartedText"),
+           
+           accordion(
+             accordion_panel(
+               title = "How to use the map",
+               uiOutput('howToUseBox')
+             ), 
+             id = "howToUseAccordion",
+             open = FALSE
+           ),
+           accordion(
+             accordion_panel(
+               title = "Source Data", 
+               div(
+                 p("Use the download buttons below to obtain ",tags$strong("all data available in the map.")),
+                 p("NOTE: The CSV tables are not produced based on your Location Search or Facility Filters selections."),
+                 div(class="inline-container",
+                     downloadButton(class="usa-button","download_facility_data", "Download Facility Data CSV"),
+                     downloadButton(class="usa-button","download_compliance_data", "Download Compliance Data CSV")
                  )
-            ),
-        ),
-    div(class="maparea",
+               )
+             ),
+             id = "sourceDataAccordion",
+             class = "margin-y-1",
+             open = FALSE
+           ),
+           layout_columns(
+             col_widths = c(8, 4),
+             card(
+               card_header(
+                 tooltip(
+                   span("Location Search ", bsicons::bs_icon("question-circle-fill")),
+                   "Use the search dropdown to highlight specific locations and zoom into the location to find nearby facilities.",
+                   placement = "right"
+                 )
+               ),
+               card_body(
+                 layout_columns(
+                   col_widths = c(6, 6),
+                   searchUI('stateSearchInput', 
+                            placeholder='--search by state-- ', 
+                            label=div('State Name'),
+                            df=stateSf, 
+                            group="", 
+                            items='stateName'),
+                   searchUI('countySearchInput', 
+                            placeholder='--search by county-- ', 
+                            label='County Name',
+                            df=countyStateSf, 
+                            group='stateName', 
+                            items='countyName')
+                 ),
+                 actionButton(class="usa-button",
+                              inputId="clearSearch",
+                              width="fit-content",
+                              label="Clear Search")
+               )
+             ),
+             card(
+               card_header(
+                 tooltip(
+                   span("Facility Filters ", bsicons::bs_icon("question-circle-fill")),
+                   "Use the program filter to refine your search of facilities within a regulatory program across the United States.",
+                   placement = "right"
+                 )
+               ),
+               card_body(
+                 selectizeInput("programSelection", 
+                                label="Select a Regulatory Program",
+                                choices=c("Select All"),
+                                selected=c("Select All"),
+                                multiple = FALSE),
+                 actionButton(class="usa-button",
+                              inputId="clearFilters",
+                              width="fit-content",
+                              label="Clear Filters")
+               )
+             )
+           )
+  ),
+  div(class="maparea",
       absolutePanel(id = "facility-map-panel", 
-                      class = "panel panel-default",
-                      draggable = FALSE,
-                      div(class="font-sans-xs line-height-sans-5",
-                          id = "facility-summary-box", 
-                          box(uiOutput("fac_summary_text"),
-                              title = "Facility Summary",  
-                              collapsible = TRUE, 
-                              status = "primary",
-                              width = 12)
-                      ),
-                      div(class="font-sans-xs line-height-sans-5",
-                          id = "compliance-summary-box", 
-                          box(uiOutput("acct_summary_text"), 
-                              title = "Compliance Summary",  
-                              collapsible = TRUE, 
-                              status = "primary",
-                              width = 12)
-                      )
-    ),
-    leafletOutput("map",width="100%", height = "600px")
-        
-    ),
-    
-    div(class="position-relative",
-        div(class="position-fixed .pin-bottom.pin-x z-top",
-            #epaSlimFooter("epaFoot", appVersion = Sys.getenv(c("APP_VERSION")), appPublished = format(Sys.Date(),"%a %b %d %Y"))
-            epaSlimFooter("epaFoot", appVersion = "v1.0.0", appPublished = format(Sys.Date(),"%a %b %d %Y"))
-        )
-    )
-    
-    #################################
-    
+                    class = "panel panel-default radius-md",
+                    draggable = FALSE,
+                    div(class="font-sans-xs line-height-sans-5",
+                        id = "facility-summary-box", 
+                        accordion(
+                          accordion_panel(
+                            title = "Facility Summary", 
+                            uiOutput("fac_summary_text")
+                          ),
+                          id = "facilitySummaryAccordion",
+                          open = TRUE,
+                          class = "margin-bottom-1"
+                        ),
+                        accordion(
+                          accordion_panel(
+                            title = "Compliance Summary", 
+                            uiOutput("acct_summary_text")
+                          ),
+                          id = "complianceSummaryAccordion",
+                          open = TRUE
+                        )
+                    ),
+      ),
+      leafletOutput("map",width="100%", height = "600px")
+      
+  ),
+  div(class="bottom-0 position-sticky", style="z-index:10;",
+      #epaSlimFooter("epaFoot", appVersion = Sys.getenv(c("APP_VERSION")), appPublished = format(Sys.Date(),"%a %b %d %Y"))
+      epaSlimFooter("epaFoot", appVersion = "v1.0.0", appPublished = format(Sys.Date(),"%a %b %d %Y"))
   )
+  
 )
-
 server <- function(input, output, session) {
   
   # GitHub raw base 
@@ -301,22 +271,22 @@ server <- function(input, output, session) {
   output$gettingStartedText <- renderUI({ 
     div(
       p("This map currently uses ",tags$strong(as.character(latestComplianceYear)),
-          " data to show the location of facilities along with their basic attribute information 
+        " data to show the location of facilities along with their basic attribute information 
           and compliance performance as part of EPA’s emissions trading programs (NOTE: Compliance 
           data is not available for non-allowance programs such as Acid Rain Program NOx or state 
           programs such as Regional Greenhouse Gas Initiative). More resources on these programs 
           can be found at ",
-          tags$a(class="usa-link",href="https://www.epa.gov/power-sector", 
-                 "EPA's Clean Air Power Sector Programs website",
-                 target="_blank", .noWS = "outside"),
-          ".", .noWS = c("after-begin", "before-end")),
+        tags$a(class="usa-link",href="https://www.epa.gov/power-sector", 
+               "EPA's Clean Air Power Sector Programs website",
+               target="_blank", .noWS = "outside"),
+        ".", .noWS = c("after-begin", "before-end")),
       
       p("Interested in exploring the data further? Check out ",
         tags$a(class="usa-link",href="https://campd.epa.gov/data", 
                "CAMPD's data section",
                target="_blank", .noWS = "outside"),
         "!", .noWS = c("after-begin", "before-end")),
-      p("Expand the boxes below to see more."),
+      p("Expand the boxes below for more information."),
     )
   })
   
@@ -485,7 +455,7 @@ server <- function(input, output, session) {
                                                style="min-width:27px;")),
                                   div(class="display-table-cell padding-y-1",
                                       "indicates the number of facilities in that general area")
-                                  ),
+                              ),
                               div(class="display-table-row",
                                   div(class="display-table-cell padding-right-1 text-middle text-center",
                                       tags$img(src='https://unpkg.com/leaflet@1.3.1/dist/images/marker-icon-2x.png',
@@ -493,7 +463,7 @@ server <- function(input, output, session) {
                                                style="min-width:20px;")),
                                   div(class="display-table-cell padding-y-1",
                                       "indicates one facility")))
-                                  )
+    )
     leaflet() %>%
       addTiles() %>% 
       addPolygons(data = arpShapeFileData,
@@ -648,15 +618,15 @@ server <- function(input, output, session) {
     leafletProxy("map",data=markerData) %>% 
       clearMarkerClusters() %>% clearPopups() %>% clearMarkers() %>% 
       addMarkers(data = markerData,
-                                lng = ~longitude, lat = ~latitude, 
-                                options = markerOptions(alt=~htmlEscape(facilityName), 
-                                                        `aria-label`="facility marker", 
-                                                        lat=~latitude,
-                                                        lng=~longitude), 
-                                layerId = ~facilityId,
-                                label = ~facilityName,
-                                clusterOptions = markerClusterOptions(
-                                  iconCreateFunction = JS("function (cluster) {    
+                 lng = ~longitude, lat = ~latitude, 
+                 options = markerOptions(alt=~htmlEscape(facilityName), 
+                                         `aria-label`="facility marker", 
+                                         lat=~latitude,
+                                         lng=~longitude), 
+                 layerId = ~facilityId,
+                 label = ~facilityName,
+                 clusterOptions = markerClusterOptions(
+                   iconCreateFunction = JS("function (cluster) {    
         var markers = cluster.getAllChildMarkers();
         var latList = []; 
         var lngList = []; 
@@ -675,8 +645,8 @@ server <- function(input, output, session) {
          className: 'marker-cluster'
         });
       }"),
-                                  showCoverageOnHover=FALSE,
-                                  removeOutsideVisibleBounds=TRUE))
+                   showCoverageOnHover=FALSE,
+                   removeOutsideVisibleBounds=TRUE))
   }
   
   # When map is clicked, show a popup with facility info
@@ -735,14 +705,14 @@ server <- function(input, output, session) {
     content <- as.character(
       tagList(
         div(class="font-sans-xs line-height-sans-5",
-        tags$h4(class="font-sans-md text-bold",selectedFac$facilityName),
-        HTML(sprintf("%s, %s",
-                                 selectedFac$county, 
-                                 as.character(selectedFac$stateCode)
-        )), tags$br(),
-        sprintf("Latitude: %s", as.character(lat)), tags$br(),
-        sprintf("Longitude: %s", as.character(lng))
-      )))
+            tags$h4(class="font-sans-md text-bold",selectedFac$facilityName),
+            HTML(sprintf("%s, %s",
+                         selectedFac$county, 
+                         as.character(selectedFac$stateCode)
+            )), tags$br(),
+            sprintf("Latitude: %s", as.character(lat)), tags$br(),
+            sprintf("Longitude: %s", as.character(lng))
+        )))
     leafletProxy("map") %>% addPopups(lng, lat, content, layerId = fac_id)
   }
   
@@ -788,9 +758,9 @@ server <- function(input, output, session) {
         tags$h4(class="font-sans-lg text-bold", selectedFac$facilityName),
         tags$strong("Facility ID:"),sprintf(" %s", as.character(facilityId)), tags$br(),
         tags$strong("State:"),sprintf(" %s", selectedFac$stateName), tags$br(),
-        tags$h5(class="font-sans-md text-bold",tags$u("Primary Fuel Type")),
+        tags$h5(class="font-sans-md text-bold margin-top-1",tags$u("Primary Fuel Type")),
         sprintf("%s", fuelTypesStg), tags$br(),
-        tags$h5(class="font-sans-md text-bold",tags$u("Pollutant Controls")),
+        tags$h5(class="font-sans-md text-bold margin-top-1",tags$u("Pollutant Controls")),
         tags$strong("SO2 Controls Installed:"),sprintf("%s", so2Controls), tags$br(),
         tags$strong("NOx Controls Installed:"),sprintf("%s", noxControls), tags$br(),
         tags$strong("Particulate Matter Controls Installed:"),sprintf("%s", pmControls), tags$br(),
@@ -802,7 +772,7 @@ server <- function(input, output, session) {
         tags$a(class="usa-link",href="https://www.epa.gov/mercury", 
                "https://www.epa.gov/mercury",
                target="_blank"),
-        tags$h5(class="font-sans-md text-bold",tags$u("Unit Operating Statuses:")),
+        tags$h5(class="font-sans-md text-bold margin-top-1",tags$u("Unit Operating Statuses:")),
         HTML(operatingStatuses)
       )
   }
@@ -841,7 +811,7 @@ server <- function(input, output, session) {
         names(compTableForLatestYear) <- c("Program","In Compliance?")
         
         complianceDisplayTable <- tagList(
-          tags$h5(class="font-sans-md text-bold",tags$u(paste0("Compliance for ",latestComplianceYear,":"))),
+          tags$h5(class="font-sans-md text-bold margin-top-1",tags$u(paste0("Compliance for ",latestComplianceYear,":"))),
           HTML(getTableHTML(compTableForLatestYear))
         )
       }
@@ -850,7 +820,7 @@ server <- function(input, output, session) {
       
       if(nrow(previousComplianceFacilityData) == 0){
         outOfComplianceTable <- tagList(
-          tags$h5(class="font-sans-md text-bold",tags$u("Non-Compliant Years:")),
+          tags$h5(class="font-sans-md text-bold margin-top-1",tags$u("Non-Compliant Years:")),
           HTML("This facility has no record of non-compliance for applicable EPA emissions trading programs.")
         )
       }
@@ -860,7 +830,7 @@ server <- function(input, output, session) {
         names(compYearsOutOfComp) <- c("Program","Year","In Compliance?")
         
         outOfComplianceTable <- tagList(
-          tags$h5(class="font-sans-md text-bold",tags$u("Non-Compliant Years:")),
+          tags$h5(class="font-sans-md text-bold margin-top-1",tags$u("Non-Compliant Years:")),
           HTML(getTableHTML(compYearsOutOfComp)),
           tags$p("This facility has no other record of non-compliance for applicable EPA emissions trading programs.")
         )
@@ -871,7 +841,7 @@ server <- function(input, output, session) {
       tagList(
         tags$h4(class="font-sans-lg text-bold",selectedFac$facilityName[1]),
         tags$strong("Account Number:"),sprintf(" %s", accountNumber),
-        tags$h5(class="font-sans-md text-bold",tags$u("Applicable Programs:")),
+        tags$h5(class="font-sans-md text-bold margin-top-1",tags$u("Applicable Programs:")),
         subjectedPrograms,
         complianceDisplayTable,
         outOfComplianceTable
@@ -882,9 +852,7 @@ server <- function(input, output, session) {
   }
   
 }
-if (!interactive()) sink(stderr(), type = "output")
 
 shiny::runApp(shinyApp(ui,server))
 # switch to below while deploying
 #shiny::runApp(shinyApp(ui,server), host="0.0.0.0", port=strtoi(Sys.getenv("PORT")))
-

@@ -1,20 +1,22 @@
 
-/* Keep uswds styles in body */
-body {
-  font-size: inherit;
-  line-height: inherit;
+.bslib-page-fill {
+  padding: 0;
+  gap: 0;
 }
 
-/* RShiny Hack to disable container fluid */
 
-.container-fluid {
-    padding-right: 0;
-    padding-left: 0;
-    margin-right: 0;
-    margin-left: 0;
+/* Search Field fix */
+.usa-search__submit-icon {
+  display: block;
 }
 
-/* Custom CSS **************************************************/
+#navRightSide .usa-search div:first-child {
+  display: block;
+}
+
+#navRightSide .usa-search div:nth-child(2) {
+  display: flex;
+}
 
 /* Banner */
 .banner {
@@ -23,7 +25,6 @@ body {
   height: auto;
   background-color: #1a4480;
 }
-
 .banner .banner-conents {
   font-family: Source Sans Pro Web,Helvetica Neue,Helvetica,Roboto,Arial,sans-serif;
   font-size: 22px;
@@ -40,52 +41,24 @@ body {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
-/* General */
-
-*+h1 {
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
+.accordian {
+  gap: var(--bslib-spacer, 1rem);;
 }
-
-.shiny-output-error {
-  color: #AD0000; /* compliant red color */
+.accordion-button, .accordion .accordion-button:not(.collapsed) {
+  /* border-top: 2px solid #1a4480; */
+  background-color: #f0f0f0;
 }
-
-ul.intro-list li.indent {
-  margin-left:25px;
+.accordion .accordion-button:focus {
+  /* border-bottom: 2px solid #1a4480; */
+  background-color: #dfe1e2;
 }
-
-.box.box-primary {
-  border-top-color: #1a4480;
-}
-
-.box-header .box-title {
-  margin-left: 2rem;
-  font-weight: bold;
-  color: #1b1b1b;
-}
-
-.box-header>.box-tools {
-  float: left!important;
-  left: 10px;
-}
-
-.box-header .box-tools .btn-box-tool {
-  color: black;
-  font-size: 0;
-}
-
-.box-header .box-tools .btn-box-tool i {
-  font-size: 12px;
+.button-container {
+  display: flex;
 }
 
 /* Map */
 div#id-map {
-  !important;
-}
-
-.maparea {
-  margin-bottom:2.2rem;
+  z-index: 1; 
 }
 
 @media all and (min-width: 480px) {
@@ -95,7 +68,7 @@ div#id-map {
     width: 360px;
     right: 10px;
     background-color: white; 
-    z-index: 10; 
+    z-index: 2; 
     margin: 10px;
     padding: 10px;
   }
@@ -109,13 +82,17 @@ div#id-map {
     overflow-y:scroll; 
     max-height: 115px; 
     background-color: white; 
-    z-index: 10; 
+    z-index: 1; 
     margin: 10px 30px;
     padding: 10px;
   }
   #ss-connect-dialog {
     width: 80% !important;
   }
+}
+
+.leaflet-top, .leaflet-bottom {
+  z-index: 3;
 }
 
 div.leaflet-container:focus {
@@ -160,60 +137,19 @@ div.leaflet-touch-drag:focus {
   outline: 2px solid #28a0cb;
 }
 
-/* Filters/Searches */
+/* Other */
 
-#filtersearch-container .column-decorator {
-  background-color: #f0f0f0;
-  border: 1px solid #3d4551;
-  border-radius: 5px;
-  margin: 5px;
-  padding-right: 15px;
-  padding-left: 15px;
-  padding-top: 0px;
-  padding-bottom: 0px;
+.selectize-dropdown-content {
+  padding-left: 0.75rem;
 }
-
-#filtersearch-container .column-decorator .form-group {
-  margin-bottom: 0px;
+.bslib-grid-item {
+  overflow: visible;
 }
-
-.select-clear {
-  margin-top: 0px;
-  margin-bottom: 10px;
+.bslib-card, .bslib-card .card-body {
+  overflow: visible;
 }
-
-/* Butons */
-
-.usa-button.usa-button--active, .usa-button:active, .usa-button:focus {
-  color: #fff;
-  background-color: #1a4480;
-}
-
-.usa-button:not([disabled]):focus {
-  color: #fff;
-  background-color: #1a4480;
-}
-
-.grid-container.download-buttons {
-  padding-left: 0;
-  margin-left: 0;
-}
-
-#filter-tooltip, #search-tooltip {
-  border-radius: 50%;
-  vertical-align: top;
-  font-size: 0;
-  padding: 0.25rem 0.4rem;
-}
-
-#filter-tooltip i, #search-tooltip i {
-  font-size: 12px;
-}
-
-@media (max-width: 30em) {
-  #search-tooltip, #filter-tooltip {
-      width: auto;
-  }
+ul.intro-list li.indent {
+  margin-left:25px;
 }
 
 /* Display Table */
