@@ -2,21 +2,16 @@
 packages:
   - packages:
     - name: shiny
-    - name: shinydashboard
-    - name: shinybusy
     - name: shinyjs
-    - name: shinyBS
-    - name: shinyWidgets
     - name: shinydisconnect
-    - name: sf
-    - name: leaflet
-    - name: leaflet.extras
-    - name: httr
+    - name: shinybusy
+    - name: bslib
+    - name: bsicons
+    - name: tidyverse
     - name: htmltools
     - name: jsonlite
-    - name: tidyverse
-    - name: lubridate
-    - name: data.table
-    - name: curl
+    - name: sf
+    - name: leaflet
+    - name: httr
     - name: reactR
     - name: epaRShinyTemplate

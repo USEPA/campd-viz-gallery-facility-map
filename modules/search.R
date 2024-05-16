@@ -66,9 +66,6 @@ searchServer <- function(input,output,session,df,
   
   dfReactive <- reactiveVal(NULL)
   
-  #observe({
-  #  freezeReactiveValue(input, "filter_value")
-  #})
   
   observeEvent(filterVal(),{
     indexDf <- cbind(df, value = seq_len(nrow(df)))
@@ -95,7 +92,6 @@ searchServer <- function(input,output,session,df,
       dfReact <- data.frame()
       dfReactive(dfReact)
     }
-    #}
   },ignoreNULL = TRUE)
   
   observeEvent(c(input$search),{
